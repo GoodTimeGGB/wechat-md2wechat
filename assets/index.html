@@ -1,0 +1,1017 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>公众号 Markdown 排版工具</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #0d1117; color: #e6edf3; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+/* ===== 顶栏 ===== */
+.app-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: #161b22; border-bottom: 1px solid #30363d; flex-shrink: 0; }
+.app-title { font-size: 15px; font-weight: 700; }
+.app-title small { font-size: 11px; color: #8b949e; font-weight: 400; margin-left: 8px; }
+.header-actions { display: flex; gap: 8px; align-items: center; }
+.btn { border: 1px solid #30363d; background: #21262d; color: #c9d1d9; font-size: 13px; padding: 6px 14px; border-radius: 6px; cursor: pointer; }
+.btn:hover { background: #30363d; }
+.btn-primary { background: #238636; border-color: #238636; color: #fff; font-weight: 600; }
+.btn-primary:hover { background: #2ea043; }
+
+/* ===== 主题栏 ===== */
+.theme-bar { display: flex; gap: 6px; padding: 8px 16px; background: #0d1117; border-bottom: 1px solid #30363d; overflow-x: auto; flex-shrink: 0; }
+.theme-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px; border: 1px solid #30363d; background: #161b22; color: #8b949e; font-size: 12px; cursor: pointer; white-space: nowrap; user-select: none; }
+.theme-pill:hover { color: #e6edf3; border-color: #8b949e; }
+.theme-pill.active { color: #fff; border-color: #58a6ff; background: #1f6feb33; }
+.theme-pill .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+/* ===== 主区域 ===== */
+.app-main { display: flex; flex: 1; min-height: 0; }
+.pane { display: flex; flex-direction: column; min-width: 0; }
+.pane-editor { flex: 0 0 44%; border-right: 1px solid #30363d; }
+.pane-preview { flex: 1; }
+.pane-header { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; background: #161b22; border-bottom: 1px solid #30363d; font-size: 12px; color: #8b949e; flex-shrink: 0; }
+.pane-header .mini-btn { border: none; background: none; color: #58a6ff; font-size: 12px; cursor: pointer; margin-left: 10px; }
+.pane-header .mini-btn:hover { text-decoration: underline; }
+#editor { flex: 1; width: 100%; resize: none; border: none; outline: none; background: #0d1117; color: #e6edf3; font-family: 'Cascadia Code', Consolas, 'Courier New', monospace; font-size: 13.5px; line-height: 1.8; padding: 14px 16px; }
+#editor::placeholder { color: #484f58; }
+.preview-scroll { flex: 1; overflow-y: auto; padding: 24px 16px 48px; }
+#preview-article { max-width: 677px; margin: 0 auto; word-wrap: break-word; }
+#preview-article img { max-width: 100%; }
+
+/* ===== 底栏 ===== */
+.app-footer { display: flex; align-items: center; gap: 18px; padding: 8px 16px; background: #161b22; border-top: 1px solid #30363d; font-size: 12px; color: #8b949e; flex-shrink: 0; flex-wrap: wrap; }
+.app-footer label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+.app-footer input[type=checkbox] { accent-color: #238636; }
+.footer-tip { margin-left: auto; color: #484f58; }
+
+/* ===== Toast ===== */
+#toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%) translateY(-20px); background: #238636; color: #fff; font-size: 13px; padding: 10px 22px; border-radius: 8px; opacity: 0; transition: all .25s; pointer-events: none; z-index: 999; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ===== 代码块复制按钮（仅预览交互层，复制正文时自动剔除） ===== */
+.code-copy-btn { position: absolute; top: 6px; right: 8px; z-index: 5; background: rgba(255,255,255,.14); color: #fff; border: 1px solid rgba(255,255,255,.3); font-size: 11px; padding: 3px 10px; border-radius: 4px; cursor: pointer; font-family: -apple-system, 'PingFang SC', sans-serif; }
+.code-copy-btn:hover { background: rgba(255,255,255,.32); }
+
+@media (max-width: 860px) {
+  .app-main { flex-direction: column; }
+  .pane-editor { flex: 0 0 40%; border-right: none; border-bottom: 1px solid #30363d; }
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-title">公众号 Markdown 排版工具<small>11 套主题 · 复制即粘贴 · 内联样式</small></div>
+  <div class="header-actions">
+    <button class="btn" id="btn-sample">填入示例</button>
+    <button class="btn" id="btn-clear">清空</button>
+    <button class="btn btn-primary" id="btn-copy">复 制</button>
+  </div>
+</header>
+
+<div class="theme-bar" id="theme-bar"></div>
+
+<main class="app-main">
+  <section class="pane pane-editor">
+    <div class="pane-header">
+      <span>Markdown</span>
+      <span id="word-count"></span>
+    </div>
+    <textarea id="editor" placeholder="在这里粘贴或编写 Markdown…
+
+支持：# 标题、**加粗**、> 引用、| 表格 |、```代码块、- 列表、--- 分隔线、![图](url)、[链接](url)、裸网址自动转链接
+
+约定：
+· 第一个 > 引用块 → 系列导语样式
+· 以 ** 开头的 > 引用块 → 金句样式
+· ## 用「一、二、三…」编号会自动转换为主题章节样式"></textarea>
+  </section>
+  <section class="pane pane-preview">
+    <div class="pane-header">
+      <span>预览（复制时只复制正文区域）</span>
+      <span id="theme-name"></span>
+    </div>
+    <div class="preview-scroll" id="preview-scroll">
+      <div id="preview-article"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="app-footer">
+  <label><input type="checkbox" id="opt-signature" checked> 自动追加签名+END</label>
+  <label><input type="checkbox" id="opt-series" checked> 首个引用块作为系列导语</label>
+  <span class="footer-tip">裸网址自动转链接 · 代码块右上角可单独复制 · 复制 → 公众号 Ctrl+V</span>
+</footer>
+
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+ * 1. Mini Markdown Parser（无外部依赖）
+ * ============================================================ */
+function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function inline(s){
+  s = escapeHtml(s);
+  s = s.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g,'<img src="$2" alt="$1">');
+  s = s.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g,'<a href="$2" target="_blank">$1</a>');
+  /* 裸网址自动转链接：排除属性值(引号/等号/>前)与中文句读，保留 & 参数，修剪尾部英文标点与不平衡括号 */
+  s = s.replace(/(?<!["'=>])(https?:\/\/[^\s<>"'，。；！？、）】」』]{4,})/g, match=>{
+    let url = match, tail = '';
+    while (/[).,;:!?]$/.test(url)) {
+      const ch = url.slice(-1);
+      if (ch === ')') {
+        const open = (url.match(/\(/g)||[]).length;
+        const close = (url.match(/\)/g)||[]).length;
+        if (close <= open) break;
+      }
+      tail = ch + tail;
+      url = url.slice(0, -1);
+    }
+    return '<a href="'+url+'" target="_blank">'+url+'</a>'+tail;
+  });
+  s = s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  s = s.replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>');
+  s = s.replace(/`([^`]+)`/g,'<code>$1</code>');
+  s = s.replace(/~~([^~]+)~~/g,'<del>$1</del>');
+  return s;
+}
+
+function buildTable(rows){
+  const parseRow = r => r.replace(/^\|/,'').replace(/\|$/,'').split('|').map(c=>c.trim());
+  const head = parseRow(rows[0]);
+  let body = rows.slice(1);
+  if(body.length && /^[\s:|-]+$/.test(body[0].replace(/\|/g,''))) body = body.slice(1);
+  let h = '<table><thead><tr>' + head.map(c=>'<th>'+inline(c)+'</th>').join('') + '</tr></thead><tbody>';
+  body.forEach(r=>{ h += '<tr>' + parseRow(r).map(c=>'<td>'+inline(c)+'</td>').join('') + '</tr>'; });
+  return h + '</tbody></table>';
+}
+
+function parseMD(src){
+  const lines = src.replace(/\r\n?/g,'\n').split('\n');
+  let html = '', inCode = false, codeBuf = [];
+  let para = [], quote = [], table = [], listType = null;
+
+  const flushPara  = ()=>{ if(para.length){ html += '<p>'+inline(para.join(' '))+'</p>'; para = []; } };
+  const flushQuote = ()=>{ if(quote.length){ html += '<blockquote>'+quote.map(l=>'<p>'+inline(l)+'</p>').join('')+'</blockquote>'; quote = []; } };
+  const flushTable = ()=>{ if(table.length){ html += buildTable(table); table = []; } };
+  const flushList  = ()=>{ if(listType){ html += '</'+listType+'>'; listType = null; } };
+  const flushAll   = ()=>{ flushPara(); flushQuote(); flushTable(); flushList(); };
+
+  for(const line of lines){
+    if(/^\s*```/.test(line)){
+      if(!inCode){ flushAll(); inCode = true; codeBuf = []; }
+      else { html += '<pre><code>'+escapeHtml(codeBuf.join('\n'))+'</code></pre>'; inCode = false; }
+      continue;
+    }
+    if(inCode){ codeBuf.push(line); continue; }
+    if(/^\s*$/.test(line)){ flushAll(); continue; }
+
+    let m = line.match(/^(#{1,4})\s+(.*)$/);
+    if(m){ flushAll(); const lv = m[1].length; html += '<h'+lv+'>'+inline(m[2].trim())+'</h'+lv+'>'; continue; }
+
+    if(/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line)){ flushAll(); html += '<hr>'; continue; }
+
+    m = line.match(/^>\s?(.*)$/);
+    if(m){ flushPara(); flushTable(); flushList(); quote.push(m[1]); continue; }
+    flushQuote();
+
+    if(/^\s*\|.*\|\s*$/.test(line)){ flushPara(); flushList(); table.push(line.trim()); continue; }
+    flushTable();
+
+    m = line.match(/^\s*[-*+]\s+(.*)$/);
+    if(m){ flushPara(); if(listType!=='ul'){ flushList(); html+='<ul>'; listType='ul'; } html += '<li>'+inline(m[1])+'</li>'; continue; }
+    m = line.match(/^\s*\d{1,2}[.)]\s+(.*)$/);
+    if(m){ flushPara(); if(listType!=='ol'){ flushList(); html+='<ol>'; listType='ol'; } html += '<li>'+inline(m[1])+'</li>'; continue; }
+    flushList();
+
+    m = line.match(/^!\[([^\]]*)\]\(([^)\s]+)\)\s*$/);
+    if(m){ flushAll(); html += '<section data-fig="1"><img src="'+m[2]+'" alt="'+escapeHtml(m[1])+'"><p data-cap="1">'+escapeHtml(m[1])+'</p></section>'; continue; }
+
+    para.push(line);
+  }
+  if(inCode) html += '<pre><code>'+escapeHtml(codeBuf.join('\n'))+'</code></pre>';
+  flushAll();
+  return html;
+}
+
+/* ============================================================
+ * 2. 章节编号拆分（一、二、三… → 各主题格式）
+ * ============================================================ */
+const CN_NUMS = {'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10};
+function splitChapter(t){
+  const m = t.match(/^([一二三四五六七八九十]{1,2})[、.．]\s*(.+)$/);
+  if(!m) return { cn:'', ar:'', text:t };
+  return { cn:m[1], ar:(CN_NUMS[m[1]]||'')+'', text:m[2] };
+}
+function splitTitle(t){
+  const idx = t.search(/——|--/);
+  if(idx > 0){
+    const parts = t.split(/——|--/);
+    return { main:parts[0].trim(), sub:parts.slice(1).join('——').trim() };
+  }
+  return { main:t, sub:'' };
+}
+
+const SERIES_LABEL = '公众号 · 系列';
+
+/* ============================================================
+ * 3. 主题定义（10 套）
+ * ============================================================ */
+const THEMES = {
+
+/* ---------- 1. 手绘笔记风 ---------- */
+handdrawn: {
+  name:'手绘笔记风', dot:'#3d6ea5', previewBg:'#e8e4dc',
+  page:"background:#faf8f3;padding:24px 18px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;font-size:16px;line-height:1.9;color:#4a4a4a;letter-spacing:.5px;",
+  styles:{
+    p:"font-size:16px;line-height:1.9;color:#4a4a4a;margin:0 0 22px;letter-spacing:.5px;",
+    bqP:"margin:0 0 10px;font-size:15px;color:#5a5a5a;line-height:1.9;letter-spacing:.5px;",
+    strong:"color:#3d6ea5;font-weight:700;", em:"color:#e8814a;font-style:normal;border-bottom:1px dashed #e8814a;",
+    a:"color:#3d6ea5;text-decoration:underline;",
+    code:"background:#f0e8d8;color:#c05a2e;padding:2px 6px;border-radius:4px;font-size:14px;font-family:Consolas,Monaco,monospace;",
+    ul:"font-size:16px;line-height:1.9;color:#4a4a4a;padding-left:22px;margin:0 0 22px;letter-spacing:.5px;",
+    ol:"font-size:16px;line-height:1.9;color:#4a4a4a;padding-left:22px;margin:0 0 22px;letter-spacing:.5px;",
+    li:"margin-bottom:10px;",
+    blockquote:"background:#f5f1e8;border-left:3px dashed #c4bda8;padding:16px 20px;margin:0 0 22px;border-radius:0 6px 6px 0;",
+    blockquoteIntro:"background:#f5f1e8;border:2px dashed #c4bda8;border-radius:6px;padding:16px 20px;margin:0 0 28px;",
+    blockquoteKey:"background:#f5f1e8;border:2px dashed #3d6ea5;border-radius:6px;padding:18px 22px;margin:24px 0;",
+    table:"width:100%;border-collapse:collapse;font-size:14px;",
+    th:"padding:10px 12px;text-align:center;color:#3d6ea5;font-weight:600;border-bottom:2px dashed #3d6ea5;",
+    td:"padding:10px 12px;text-align:center;color:#8a8a8a;border-bottom:1px dashed #d4cfc4;",
+    img:"max-width:100%;border-radius:6px;border:2px dashed #d4cfc4;padding:4px;display:block;margin:0 auto;background:#fff;",
+    figure:"margin:22px 0;text-align:center;",
+    figcaption:"font-size:13px;color:#b0a890;margin:8px 0 0;font-style:italic;"
+  },
+  title(t){ const s = splitTitle(t); return `
+<section style="margin-bottom:32px;text-align:center;">
+  <p style="font-size:12px;color:#8a8a8a;letter-spacing:2px;margin:0 0 12px;font-family:Georgia,serif;">${SERIES_LABEL}</p>
+  <h1 style="font-size:24px;font-weight:700;color:#3d6ea5;line-height:1.5;margin:0 0 10px;font-family:Georgia,'Noto Serif SC',serif;">${s.main}</h1>
+  ${s.sub?`<p style="font-size:15px;color:#8a8a8a;margin:0 0 12px;font-family:Georgia,serif;">——${s.sub}——</p>`:''}
+  <section style="width:40px;border-top:2px dashed #c4bda8;margin:14px auto 0;"></section>
+</section>`; },
+  h2(t){ const c = splitChapter(t); return `<section style="margin:40px 0 18px;"><h2 style="font-size:19px;font-weight:700;color:#4a4a4a;margin:0;padding-left:14px;border-left:3px solid #3d6ea5;line-height:1.5;font-family:Georgia,'Noto Serif SC',serif;">${c.cn?c.cn+'、':''}${c.text}</h2></section>`; },
+  h3(t){ return `<h3 style="font-size:17px;font-weight:600;color:#3d6ea5;margin:28px 0 12px;font-family:Georgia,'Noto Serif SC',serif;">${t}</h3>`; },
+  hr(){ return `<section style="text-align:center;margin:36px 0;"><span style="display:inline-block;width:40px;border-top:2px dashed #c4bda8;vertical-align:middle;"></span><span style="display:inline-block;margin:0 8px;color:#c4bda8;font-size:14px;vertical-align:middle;">✦</span><span style="display:inline-block;width:40px;border-top:2px dashed #c4bda8;vertical-align:middle;"></span></section>`; },
+  pre(code){ return `<section style="background:#2d2d2d;border-radius:6px;padding:16px;margin:20px 0;overflow-x:auto;"><pre style="margin:0;font-size:13px;line-height:1.7;color:#d4d4d4;font-family:Consolas,Monaco,monospace;white-space:pre-wrap;word-wrap:break-word;"><code>${code}</code></pre></section>`; },
+  signature(){ return `
+<section style="text-align:center;margin:36px 0 20px;"><span style="font-size:18px;color:#c4bda8;">~</span><span style="font-size:14px;color:#c4bda8;margin:0 6px;letter-spacing:2px;">END</span><span style="font-size:18px;color:#c4bda8;">~</span></section>
+<section style="margin-top:32px;padding-top:24px;border-top:2px dashed #c4bda8;">
+  <p style="font-size:15px;color:#4a4a4a;line-height:2;margin:0 0 8px;letter-spacing:.5px;">感谢阅读 · 欢迎关注并转发</p>
+  <p style="font-size:14px;color:#8a8a8a;line-height:2;margin:0 0 10px;letter-spacing:.5px;">点击主页加群或者私信加群一起学习AI。</p>
+  <p style="font-size:15px;color:#4a4a4a;line-height:2;margin:0;letter-spacing:.5px;">如果你觉得今天这篇有收获，欢迎<strong style="color:#e8814a;">点赞、在看、转发</strong>三连，我们下篇见。</p>
+</section>`; }
+},
+
+/* ---------- 2. 活力卡通风 ---------- */
+cartoon: {
+  name:'活力卡通风', dot:'#4A90D9', previewBg:'#f0f0f0',
+  page:"background:#ffffff;padding:24px 18px;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;font-size:16px;line-height:1.9;color:#333333;letter-spacing:.5px;",
+  styles:{
+    p:"font-size:16px;line-height:1.9;color:#333;margin:0 0 22px;letter-spacing:.5px;",
+    bqP:"margin:0 0 10px;font-size:15px;color:#555;line-height:1.9;letter-spacing:.5px;",
+    strong:"color:#4A90D9;font-weight:700;", em:"color:#FF6B6B;font-style:normal;font-weight:600;",
+    a:"color:#4A90D9;text-decoration:underline;",
+    code:"background:#F0F7FF;color:#4A90D9;padding:2px 8px;border-radius:10px;font-size:14px;font-family:Consolas,Monaco,monospace;",
+    ul:"font-size:16px;line-height:1.9;color:#333;padding-left:24px;margin:0 0 22px;letter-spacing:.5px;",
+    ol:"font-size:16px;line-height:1.9;color:#333;padding-left:24px;margin:0 0 22px;letter-spacing:.5px;",
+    li:"margin-bottom:10px;",
+    blockquote:"background:#F0F7FF;border-radius:16px;padding:18px 22px;margin:0 0 22px;border-left:4px solid #4A90D9;",
+    blockquoteIntro:"background:#F0F7FF;border-radius:16px;padding:18px 22px;margin:0 0 28px;border:1px solid #D9EAF7;",
+    blockquoteKey:"background:linear-gradient(135deg,#4A90D9 0%,#5BA3E8 100%);border-radius:16px;padding:20px 24px;margin:24px 0;",
+    blockquoteKeyP:"margin:0;font-size:16px;color:#ffffff;line-height:1.9;font-weight:600;letter-spacing:.5px;",
+    table:"width:100%;border-collapse:separate;border-spacing:0;font-size:14px;border-radius:12px;overflow:hidden;",
+    th:"padding:12px;text-align:center;color:#fff;font-weight:600;background:#4A90D9;",
+    td:"padding:10px 12px;text-align:center;color:#888;background:#ffffff;border-bottom:1px solid #F0F7FF;",
+    img:"max-width:100%;border-radius:12px;display:block;margin:0 auto;border:2px solid #D9EAF7;",
+    figure:"margin:22px 0;text-align:center;",
+    figcaption:"font-size:13px;color:#aaa;margin:8px 0 0;"
+  },
+  title(t){ const s = splitTitle(t); return `
+<section style="margin-bottom:32px;text-align:center;">
+  <section style="display:inline-block;background:#4A90D9;color:#fff;font-size:12px;padding:4px 16px;border-radius:20px;margin-bottom:14px;">${SERIES_LABEL}</section>
+  <h1 style="font-size:24px;font-weight:800;color:#333;line-height:1.5;margin:0 0 10px;">${s.main}</h1>
+  ${s.sub?`<p style="font-size:15px;color:#888;margin:0 0 14px;">——${s.sub}——</p>`:''}
+  <section style="display:inline-block;background:#FFFBE6;border:1px solid #FAAD14;border-radius:20px;padding:4px 16px;"><p style="font-size:13px;color:#FAAD14;margin:0;">用技术让AI更实用</p></section>
+</section>`; },
+  h2(t){ const c = splitChapter(t); return `<section style="margin:40px 0 18px;"><section style="display:flex;align-items:center;gap:10px;">${c.cn?`<span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:#4A90D9;color:#fff;font-size:16px;font-weight:800;border-radius:50%;flex-shrink:0;">${c.cn}</span>`:''}<h2 style="font-size:19px;font-weight:700;color:#333;margin:0;line-height:1.5;">${c.text}</h2></section></section>`; },
+  h3(t){ return `<h3 style="font-size:17px;font-weight:700;color:#4A90D9;margin:28px 0 12px;">▸ ${t}</h3>`; },
+  hr(){ return `<section style="text-align:center;margin:36px 0;"><span style="display:inline-block;width:8px;height:8px;background:#4A90D9;border-radius:50%;margin:0 3px;"></span><span style="display:inline-block;width:8px;height:8px;background:#FF6B6B;border-radius:50%;margin:0 3px;"></span><span style="display:inline-block;width:8px;height:8px;background:#52C41A;border-radius:50%;margin:0 3px;"></span></section>`; },
+  pre(code){ return `<section style="background:#1a1a2e;border-radius:12px;padding:16px;margin:20px 0;overflow-x:auto;"><pre style="margin:0;font-size:13px;line-height:1.7;color:#d4d4d4;font-family:Consolas,Monaco,monospace;white-space:pre-wrap;word-wrap:break-word;"><code>${code}</code></pre></section>`; },
+  signature(){ return `
+<section style="text-align:center;margin:36px 0 20px;"><span style="display:inline-block;width:8px;height:8px;background:#4A90D9;border-radius:50%;margin:0 3px;"></span><span style="display:inline-block;width:8px;height:8px;background:#FF6B6B;border-radius:50%;margin:0 3px;"></span><span style="display:inline-block;width:8px;height:8px;background:#52C41A;border-radius:50%;margin:0 3px;"></span><p style="font-size:12px;color:#aaa;margin:6px 0 0;letter-spacing:2px;">END</p></section>
+<section style="margin-top:32px;padding:24px;background:linear-gradient(135deg,#F0F7FF 0%,#FFFBE6 100%);border-radius:16px;">
+  <p style="font-size:15px;color:#333;line-height:2;margin:0 0 8px;letter-spacing:.5px;">感谢阅读 · 欢迎关注并转发</p>
+  <p style="font-size:14px;color:#888;line-height:2;margin:0 0 10px;letter-spacing:.5px;">点击主页加群或者私信加群一起学习AI。</p>
+  <p style="font-size:15px;color:#333;line-height:2;margin:0;letter-spacing:.5px;">如果你觉得今天这篇有收获，欢迎<strong style="color:#FF6B6B;">点赞、在看、转发</strong>三连，我们下篇见。</p>
+</section>`; }
+},
+
+/* ---------- 3. 水墨书法风 ---------- */
+ink: {
+  name:'水墨书法风', dot:'#2c2c2c', previewBg:'#d4cfc4',
+  page:"background:#f7f4ef;padding:24px 18px;font-family:'Noto Serif SC','Songti SC','SimSun',serif;font-size:16px;line-height:2;color:#3a3a3a;letter-spacing:.5px;",
+  styles:{
+    p:"font-size:16px;line-height:2;color:#3a3a3a;margin:0 0 22px;letter-spacing:.5px;font-family:'Noto Serif SC','Songti SC',serif;",
+    bqP:"margin:0 0 10px;font-size:15px;color:#5a5a5a;line-height:2;letter-spacing:.5px;font-family:'Noto Serif SC',serif;",
+    strong:"color:#b8323a;font-weight:700;", em:"color:#8b7355;font-style:normal;",
+    a:"color:#b8323a;text-decoration:underline;",
+    code:"background:#ece4d4;color:#8b3a2e;padding:2px 6px;font-size:14px;font-family:Consolas,Monaco,monospace;",
+    ul:"font-size:16px;line-height:2;color:#3a3a3a;padding-left:22px;margin:0 0 22px;letter-spacing:.5px;font-family:'Noto Serif SC',serif;",
+    ol:"font-size:16px;line-height:2;color:#3a3a3a;padding-left:22px;margin:0 0 22px;letter-spacing:.5px;font-family:'Noto Serif SC',serif;",
+    li:"margin-bottom:10px;",
+    blockquote:"background:#f0ece4;border-left:3px solid #8b7355;padding:16px 22px;margin:0 0 22px;",
+    blockquoteIntro:"background:#f0ece4;border-left:3px solid #b8323a;padding:18px 22px;margin:0 0 28px;",
+    blockquoteKey:"background:#f0ece4;border-top:2px solid #2c2c2c;border-bottom:2px solid #2c2c2c;padding:20px 24px;margin:24px 0;text-align:center;",
+    table:"width:100%;border-collapse:collapse;font-size:14px;font-family:'Noto Serif SC',serif;",
+    th:"padding:12px;text-align:center;color:#2c2c2c;font-weight:700;border-bottom:2px solid #2c2c2c;letter-spacing:1px;",
+    td:"padding:10px 12px;text-align:center;color:#8b7355;border-bottom:1px solid #d4cfc4;",
+    img:"max-width:100%;display:block;margin:0 auto;border:1px solid #d4cfc4;",
+    figure:"margin:22px 0;text-align:center;",
+    figcaption:"font-size:13px;color:#9a9a9a;margin:8px 0 0;font-family:'Noto Serif SC',serif;"
+  },
+  title(t){ const s = splitTitle(t); return `
+<section style="margin-bottom:36px;text-align:center;">
+  <p style="font-size:12px;color:#9a9a9a;letter-spacing:4px;margin:0 0 14px;font-family:'Noto Serif SC',serif;">公众号 · 系列</p>
+  <h1 style="font-size:24px;font-weight:700;color:#2c2c2c;line-height:1.5;margin:0 0 12px;font-family:'Noto Serif SC','SimSun',serif;letter-spacing:2px;">${s.main}</h1>
+  ${s.sub?`<p style="font-size:15px;color:#8b7355;margin:0 0 16px;font-family:'Noto Serif SC',serif;letter-spacing:1px;">——${s.sub}——</p>`:''}
+  <section style="display:inline-block;border-top:1px solid #d4cfc4;border-bottom:1px solid #d4cfc4;padding:6px 30px;"><p style="font-size:13px;color:#9a9a9a;margin:0;letter-spacing:1px;">用技术让AI更实用</p></section>
+</section>`; },
+  h2(t){ const c = splitChapter(t); return `<section style="margin:40px 0 18px;"><h2 style="font-size:19px;font-weight:700;color:#2c2c2c;margin:0;padding-left:14px;border-left:3px solid #2c2c2c;line-height:1.5;font-family:'Noto Serif SC','SimSun',serif;letter-spacing:1px;">${c.cn?c.cn+'、':''}${c.text}</h2></section>`; },
+  h3(t){ return `<h3 style="font-size:17px;font-weight:700;color:#b8323a;margin:28px 0 12px;font-family:'Noto Serif SC',serif;letter-spacing:1px;">· ${t}</h3>`; },
+  hr(){ return `<section style="text-align:center;margin:36px 0;"><span style="display:inline-block;width:60px;border-top:1px solid #d4cfc4;vertical-align:middle;"></span><span style="display:inline-block;margin:0 12px;color:#b8323a;font-size:12px;vertical-align:middle;">❖</span><span style="display:inline-block;width:60px;border-top:1px solid #d4cfc4;vertical-align:middle;"></span></section>`; },
+  pre(code){ return `<section style="background:#1e1e1e;padding:16px;margin:20px 0;overflow-x:auto;"><pre style="margin:0;font-size:13px;line-height:1.7;color:#d4d4d4;font-family:Consolas,Monaco,monospace;white-space:pre-wrap;word-wrap:break-word;"><code>${code}</code></pre></section>`; },
+  signature(){ return `
+<section style="text-align:center;margin:36px 0 20px;"><section style="display:inline-block;border:2px solid #b8323a;padding:4px 12px;"><p style="font-size:13px;color:#b8323a;margin:0;letter-spacing:4px;font-family:'Noto Serif SC',serif;font-weight:700;">终</p></section></section>
+<section style="margin-top:32px;padding-top:24px;border-top:1px double #2c2c2c;">
+  <p style="font-size:15px;color:#3a3a3a;line-height:2;margin:0 0 8px;letter-spacing:.5px;font-family:'Noto Serif SC',serif;">感谢阅读 · 欢迎关注并转发</p>
+  <p style="font-size:14px;color:#8b7355;line-height:2;margin:0 0 10px;letter-spacing:.5px;font-family:'Noto Serif SC',serif;">点击主页加群或者私信加群一起学习AI。</p>
+  <p style="font-size:15px;color:#3a3a3a;line-height:2;margin:0;letter-spacing:.5px;font-family:'Noto Serif SC',serif;">如果你觉得今天这篇有收获，欢迎<strong style="color:#b8323a;">点赞、在看、转发</strong>三连，我们下篇见。</p>
+</section>`; }
+},
+
+/* ---------- 4. 极简留白风 ---------- */
+minimal: {
+  name:'极简留白风', dot:'#2563eb', previewBg:'#e5e7eb',
+  page:"background:#ffffff;padding:28px 20px;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;font-size:16px;line-height:1.9;color:#374151;letter-spacing:.3px;",
+  styles:{
+    p:"font-size:16px;line-height:1.9;color:#374151;margin:0 0 22px;letter-spacing:.3px;",
+    bqP:"margin:0 0 10px;font-size:15px;color:#6b7280;line-height:1.9;letter-spacing:.3px;",
+    strong:"color:#2563eb;font-weight:700;", em:"color:#dc2626;font-style:normal;font-weight:600;",
+    a:"color:#2563eb;text-decoration:underline;",
+    code:"background:#f3f4f6;color:#dc2626;padding:2px 6px;border-radius:4px;font-size:14px;font-family:Consolas,Monaco,monospace;",
+    ul:"font-size:16px;line-height:1.9;color:#374151;padding-left:20px;margin:0 0 22px;letter-spacing:.3px;",
+    ol:"font-size:16px;line-height:1.9;color:#374151;padding-left:20px;margin:0 0 22px;letter-spacing:.3px;",
+    li:"margin-bottom:10px;",
+    blockquote:"border-left:2px solid #e5e7eb;padding:4px 0 4px 16px;margin:0 0 22px;",
+    blockquoteIntro:"border-left:2px solid #2563eb;padding:4px 0 4px 16px;margin:0 0 28px;",
+    blockquoteKey:"border-left:3px solid #2563eb;padding:8px 0 8px 16px;margin:28px 0;",
+    table:"width:100%;border-collapse:collapse;font-size:14px;",
+    th:"padding:10px 12px;text-align:left;color:#1f2937;font-weight:700;border-bottom:2px solid #1f2937;",
+    td:"padding:10px 12px;color:#6b7280;border-bottom:1px solid #e5e7eb;text-align:left;",
+    img:"max-width:100%;border-radius:4px;display:block;margin:0 auto;",
+    figure:"margin:22px 0;text-align:center;",
+    figcaption:"font-size:13px;color:#9ca3af;margin:8px 0 0;"
+  },
+  title(t){ const s = splitTitle(t); return `
+<section style="margin-bottom:40px;">
+  <p style="font-size:12px;color:#6b7280;letter-spacing:2px;margin:0 0 12px;">${SERIES_LABEL}</p>
+  <h1 style="font-size:26px;font-weight:800;color:#1f2937;line-height:1.4;margin:0 0 8px;letter-spacing:-.5px;">${s.main}</h1>
+  ${s.sub?`<p style="font-size:15px;color:#6b7280;margin:0;">——${s.sub}——</p>`:''}
+</section>`; },
+  h2(t){ const c = splitChapter(t); return `<h2 style="font-size:20px;font-weight:700;color:#1f2937;margin:40px 0 16px;line-height:1.5;letter-spacing:-.3px;">${c.cn?c.cn+'、':''}${c.text}</h2>`; },
+  h3(t){ return `<h3 style="font-size:17px;font-weight:600;color:#2563eb;margin:28px 0 10px;">${t}</h3>`; },
+  hr(){ return `<hr style="border:none;border-top:1px solid #e5e7eb;margin:36px 0;" />`; },
+  pre(code){ return `<section style="background:#1e293b;border-radius:4px;padding:16px;margin:20px 0;overflow-x:auto;"><pre style="margin:0;font-size:13px;line-height:1.7;color:#e2e8f0;font-family:Consolas,Monaco,monospace;white-space:pre-wrap;word-wrap:break-word;"><code>${code}</code></pre></section>`; },
+  signature(){ return `
+<section style="text-align:center;margin:36px 0 20px;"><p style="font-size:12px;color:#d1d5db;margin:0;letter-spacing:3px;">— END —</p></section>
+<section style="margin-top:32px;padding-top:24px;border-top:1px solid #e5e7eb;">
+  <p style="font-size:15px;color:#374151;line-height:2;margin:0 0 8px;">感谢阅读 · 欢迎关注并转发</p>
+  <p style="font-size:14px;color:#9ca3af;line-height:2;margin:0 0 10px;">点击主页加群或者私信加群一起学习AI。</p>
+  <p style="font-size:15px;color:#374151;line-height:2;margin:0;">如果你觉得今天这篇有收获，欢迎<strong style="color:#dc2626;">点赞、在看、转发</strong>三连，我们下篇见。</p>
+</section>`; }
+},
+
+/* ---------- 5. 代码极客风 ---------- */
+geek: {
+  name:'代码极客风', dot:'#1a7f37', previewBg:'#0d1117',
+  page:"background:#ffffff;padding:24px 18px;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;font-size:16px;line-height:1.9;color:#24292f;letter-spacing:.3px;",
+  bqLabel:'// 生活类比',
+  bqKeyLabel:'// key takeaway',
+  styles:{
+    p:"font-size:16px;line-height:1.9;color:#24292f;margin:0 0 22px;letter-spacing:.3px;",
+    bqP:"margin:0 0 10px;font-size:15px;color:#24292f;line-height:1.9;letter-spacing:.3px;",
+    strong:"color:#0969da;font-weight:700;", em:"color:#cf222e;font-style:normal;font-weight:600;",
+    a:"color:#0969da;text-decoration:underline;",
+    code:"background:#eff1f3;color:#cf222e;padding:2px 6px;border-radius:4px;font-size:14px;font-family:'Cascadia Code',Consolas,monospace;",
+    ul:"font-size:16px;line-height:1.9;color:#24292f;padding-left:24px;margin:0 0 22px;letter-spacing:.3px;",
+    ol:"font-size:16px;line-height:1.9;color:#24292f;padding-left:24px;margin:0 0 22px;letter-spacing:.3px;",
+    li:"margin-bottom:10px;",
+    blockquote:"background:#f6f8fa;border:1px solid #d0d7de;border-radius:6px;padding:16px 18px;margin:0 0 22px;",
+    blockquoteIntro:"background:#f6f8fa;border-left:3px solid #0969da;padding:14px 18px;margin:0 0 28px;border-radius:0 6px 6px 0;",
+    blockquoteKey:"background:#0d1117;border-radius:6px;padding:18px 20px;margin:24px 0;",
+    blockquoteKeyP:"margin:0 0 8px;font-size:16px;color:#e6edf3;line-height:1.9;font-weight:600;",
+    table:"width:100%;border-collapse:collapse;font-size:14px;border:1px solid #d0d7de;",
+    th:"padding:10px 12px;text-align:left;color:#24292f;font-weight:700;background:#f6f8fa;border-bottom:1px solid #d0d7de;font-family:'Cascadia Code',Consolas,monospace;font-size:13px;",
+    td:"padding:10px 12px;color:#636c76;border-bottom:1px solid #d0d7de;",
+    img:"max-width:100%;border-radius:6px;display:block;margin:0 auto;border:1px solid #d0d7de;",
+    figure:"margin:22px 0;text-align:center;",
+    figcaption:"font-size:13px;color:#636c76;margin:8px 0 0;font-family:'Cascadia Code',Consolas,monospace;"
+  },
+  title(t){ const s = splitTitle(t); return `
+<section style="margin-bottom:36px;">
+  <p style="font-size:12px;color:#636c76;margin:0 0 12px;font-family:'Cascadia Code',Consolas,monospace;">// 公众号 · 系列</p>
+  <h1 style="font-size:24px;font-weight:800;color:#24292f;line-height:1.4;margin:0 0 8px;">${s.main}</h1>
+  ${s.sub?`<p style="font-size:15px;color:#0969da;margin:0 0 12px;font-family:'Cascadia Code',Consolas,monospace;">$ ${s.sub}</p>`:''}
+  <p style="font-size:14px;color:#636c76;margin:0;">&gt; 用技术让AI更实用</p>
+</section>`; },
+  h2(t){ const c = splitChapter(t); return `<section style="margin:40px 0 18px;"><h2 style="font-size:19px;font-weight:700;color:#24292f;margin:0;line-height:1.5;"><span style="color:#8250df;font-family:'Cascadia Code',Consolas,monospace;font-size:16px;margin-right:8px;">##</span>${c.cn?c.cn+'、':''}${c.text}</h2></section>`; },
+  h3(t){ return `<h3 style="font-size:17px;font-weight:600;color:#0969da;margin:28px 0 12px;"><span style="font-family:'Cascadia Code',Consolas,monospace;margin-right:6px;">###</span>${t}</h3>`; },
+  hr(){ return `<section style="text-align:center;margin:36px 0;"><span style="font-family:'Cascadia Code',Consolas,monospace;color:#d0d7de;font-size:13px;">// ────────────────────</span></section>`; },
+  pre(code){ return `<section style="margin:20px 0;border-radius:6px;overflow:hidden;border:1px solid #d0d7de;"><section style="background:#f6f8fa;padding:8px 16px;border-bottom:1px solid #d0d7de;"><span style="display:inline-block;width:10px;height:10px;background:#ff5f56;border-radius:50%;"></span><span style="display:inline-block;width:10px;height:10px;background:#ffbd2e;border-radius:50%;margin-left:5px;"></span><span style="display:inline-block;width:10px;height:10px;background:#27c93f;border-radius:50%;margin-left:5px;"></span></section><section style="background:#0d1117;padding:16px;overflow-x:auto;"><pre style="margin:0;font-size:13px;line-height:1.7;color:#e6edf3;font-family:'Cascadia Code',Consolas,Monaco,monospace;white-space:pre-wrap;word-wrap:break-word;"><code>${code}</code></pre></section></section>`; },
+  signature(){ return `
+<section style="text-align:center;margin:36px 0 20px;"><p style="font-size:13px;color:#d0d7de;margin:0;font-family:'Cascadia Code',Consolas,monospace;"><span style="color:#1a7f37;">$</span> <span style="color:#636c76;">exit 0</span> <span style="color:#d0d7de;">// EOF</span></p></section>
+<section style="margin-top:32px;padding-top:24px;border-top:1px solid #d0d7de;">
+  <p style="margin:0 0 4px;font-size:12px;color:#636c76;font-family:'Cascadia Code',Consolas,monospace;">// author</p>
+  <p style="font-size:15px;color:#24292f;line-height:2;margin:0 0 8px;">感谢阅读 · 欢迎关注并转发</p>
+  <p style="font-size:14px;color:#636c76;line-height:2;margin:0 0 10px;">点击主页加群或者私信加群一起学习AI。</p>
+  <p style="font-size:15px;color:#24292f;line-height:2;margin:0;">如果你觉得今天这篇有收获，欢迎<strong style="color:#cf222e;">点赞、在看、转发</strong>三连，我们下篇见。</p>
+</section>`; }
+},
+
+/* ---------- 6. 杂志编辑风 ---------- */
+editorial: {
+  name:'杂志编辑风', dot:'#c0392b', previewBg:'#d9d4c7',
+  page:"background:#f5f2eb;padding:28px 20px;font-family:'Noto Serif SC','Songti SC','SimSun',serif;font-size:16px;line-height:2;color:#2a2a2a;letter-spacing:.3px;",
+  bqLabel:'打个比方 BY ANALOGY',
+  bqIntroLabel:'卷首语 FROM THE EDITOR',
+  bqKeyLabel:'"',
+  dropCap:{ style:"float:left;font-size:52px;line-height:1;font-weight:800;color:#1a1a1a;margin:4px 10px 0 0;font-family:Georgia,'Noto Serif SC',serif;" },
+  styles:{
+    p:"font-size:16px;line-height:2;color:#2a2a2a;margin:0 0 22px;letter-spacing:.3px;font-family:'Noto Serif SC',serif;",
+    bqP:"margin:0 0 10px;font-size:15px;color:#4a4a4a;line-height:2;letter-spacing:.3px;font-family:'Noto Serif SC',serif;",
+    strong:"color:#c0392b;font-weight:700;", em:"color:#1a1a1a;font-style:italic;font-weight:600;",
+    a:"color:#c0392b;text-decoration:underline;",
+    code:"background:#ece7db;color:#8a3324;padding:2px 6px;font-size:14px;font-family:Consolas,Monaco,monospace;",
+    ul:"font-size:16px;line-height:2;color:#2a2a2a;padding-left:20px;margin:0 0 22px;letter-spacing:.3px;font-family:'Noto Serif SC',serif;list-style:none;",
+    ol:"font-size:16px;line-height:2;color:#2a2a2a;padding-left:24px;margin:0 0 22px;letter-spacing:.3px;font-family:'Noto Serif SC',serif;",
+    li:"margin-bottom:10px;",
+    blockquote:"background:#efeae0;padding:18px 22px;margin:0 0 22px;border-left:1px solid #1a1a1a;",
+    blockquoteIntro:"border-top:3px double #1a1a1a;border-bottom:1px solid #d6cfc2;padding:14px 4px;margin:0 0 28px;",
+    blockquoteKey:"margin:28px 0;text-align:center;padding:8px 20px;",
+    table:"width:100%;border-collapse:collapse;font-size:14px;font-family:'Noto Serif SC',serif;",
+    th:"padding:10px 12px;text-align:left;color:#1a1a1a;font-weight:800;border-top:3px double #1a1a1a;border-bottom:1px solid #1a1a1a;letter-spacing:1px;",
+    td:"padding:10px 12px;color:#6b6b6b;border-bottom:1px solid #d6cfc2;text-align:left;",
+    img:"max-width:100%;display:block;margin:0 auto;border:1px solid #d6cfc2;",
+    figure:"margin:22px 0;text-align:center;",
+    figcaption:"font-size:12px;color:#a8a29a;margin:8px 0 0;font-family:Georgia,serif;"
+  },
+  title(t){ const s = splitTitle(t); return `
+<section style="margin-bottom:36px;">
+  <section style="border-top:1px solid #1a1a1a;border-bottom:1px solid #1a1a1a;padding:8px 0;margin-bottom:24px;"><p style="font-size:11px;color:#1a1a1a;letter-spacing:3px;margin:0;text-align:center;font-family:Georgia,serif;">AI SERIES · 公众号</p></section>
+  <h1 style="font-size:30px;font-weight:800;color:#1a1a1a;line-height:1.3;margin:0 0 12px;font-family:Georgia,'Noto Serif SC',serif;letter-spacing:.5px;">${s.main}</h1>
+  ${s.sub?`<p style="font-size:16px;color:#6b6b6b;margin:0 0 16px;font-family:Georgia,serif;font-style:italic;">——${s.sub}——</p>`:''}
+  <p style="font-size:13px;color:#a8a29a;margin:0;font-family:Georgia,serif;">文 / 作者</p>
+</section>`; },
+  h2(t){ const c = splitChapter(t); const num = c.ar ? String(c.ar).padStart(2,'0') : ''; return `<section style="margin:40px 0 18px;border-bottom:1px solid #d6cfc2;padding-bottom:10px;"><h2 style="font-size:20px;font-weight:800;color:#1a1a1a;margin:0;line-height:1.5;font-family:Georgia,'Noto Serif SC',serif;">${num?`<span style="color:#c0392b;margin-right:10px;">${num}</span>`:''}${c.text}</h2></section>`; },
+  h3(t){ return `<h3 style="font-size:17px;font-weight:700;color:#1a1a1a;margin:28px 0 12px;font-family:Georgia,'Noto Serif SC',serif;"><span style="color:#c0392b;margin-right:6px;">§</span>${t}</h3>`; },
+  hr(){ return `<section style="margin:36px 0;"><hr style="border:none;border-top:1px solid #1a1a1a;margin:0 0 3px;" /><hr style="border:none;border-top:3px solid #1a1a1a;margin:0;" /></section>`; },
+  pre(code){ return `<section style="margin:20px 0;"><p style="font-size:11px;color:#6b6b6b;margin:0 0 6px;letter-spacing:2px;font-family:Georgia,serif;">LISTING — Code</p><section style="background:#1e1e1e;padding:16px;overflow-x:auto;"><pre style="margin:0;font-size:13px;line-height:1.7;color:#d4d4d4;font-family:Consolas,Monaco,monospace;white-space:pre-wrap;word-wrap:break-word;"><code>${code}</code></pre></section></section>`; },
+  signature(){ return `
+<section style="text-align:center;margin:36px 0 20px;"><p style="font-size:14px;color:#1a1a1a;margin:0;letter-spacing:6px;font-family:Georgia,serif;">— 完 —</p></section>
+<section style="margin-top:32px;border-top:3px double #1a1a1a;padding-top:18px;">
+  <p style="font-size:11px;color:#a8a29a;letter-spacing:3px;margin:0 0 10px;font-family:Georgia,serif;">关于作者 ABOUT THE AUTHOR</p>
+  <p style="font-size:15px;color:#2a2a2a;line-height:2;margin:0 0 8px;font-family:'Noto Serif SC',serif;">感谢阅读 · 欢迎关注并转发</p>
+  <p style="font-size:14px;color:#6b6b6b;line-height:2;margin:0 0 10px;font-family:'Noto Serif SC',serif;">点击主页加群或者私信加群一起学习AI。</p>
+  <p style="font-size:15px;color:#2a2a2a;line-height:2;margin:0;font-family:'Noto Serif SC',serif;">如果你觉得今天这篇有收获，欢迎<strong style="color:#c0392b;">点赞、在看、转发</strong>三连，我们下篇见。</p>
+</section>`; }
+},
+
+/* ---------- 7. 柔光幻境风 ---------- */
+aurora: {
+  name:'柔光幻境风', dot:'#6c5ce7', previewBg:'#e0e7ff',
+  page:"background:#ffffff;padding:24px 18px;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;font-size:16px;line-height:1.9;color:#2a2a4a;letter-spacing:.3px;",
+  styles:{
+    p:"font-size:16px;line-height:1.9;color:#2a2a4a;margin:0 0 22px;letter-spacing:.3px;",
+    bqP:"margin:0 0 10px;font-size:15px;color:#2a2a4a;line-height:1.9;letter-spacing:.3px;",
+    strong:"color:#6c5ce7;font-weight:700;", em:"color:#fd79a8;font-style:normal;font-weight:600;",
+    a:"color:#6c5ce7;text-decoration:underline;",
+    code:"background:#f0edff;color:#6c5ce7;padding:2px 8px;border-radius:10px;font-size:14px;font-family:Consolas,Monaco,monospace;",
+    ul:"font-size:16px;line-height:1.9;color:#2a2a4a;padding-left:22px;margin:0 0 22px;letter-spacing:.3px;",
+    ol:"font-size:16px;line-height:1.9;color:#2a2a4a;padding-left:22px;margin:0 0 22px;letter-spacing:.3px;",
+    li:"margin-bottom:10px;",
+    blockquote:"background:linear-gradient(135deg,#a8edea 0%,#fed6e3 100%);border-radius:20px;padding:18px 22px;margin:0 0 22px;",
+    blockquoteIntro:"background:linear-gradient(135deg,#c7e9ff 0%,#e3d5ff 100%);border-radius:20px;padding:18px 22px;margin:0 0 28px;",
+    blockquoteKey:"background:linear-gradient(135deg,#6c5ce7 0%,#00b8d4 100%);border-radius:20px;padding:22px 24px;margin:24px 0;",
+    blockquoteKeyP:"margin:0;font-size:16px;color:#ffffff;line-height:1.9;font-weight:700;",
+    table:"width:100%;border-collapse:collapse;font-size:14px;",
+    th:"padding:12px;text-align:center;color:#fff;font-weight:700;background:linear-gradient(135deg,#6c5ce7,#00b8d4);",
+    td:"padding:10px 12px;text-align:center;color:#8a8aa8;border-bottom:1px solid #ececfb;",
+    img:"max-width:100%;border-radius:16px;display:block;margin:0 auto;border:1px solid #ececfb;",
+    figure:"margin:22px 0;text-align:center;",
+    figcaption:"font-size:13px;color:#b0b0c8;margin:8px 0 0;"
+  },
+  title(t){ const s = splitTitle(t); return `
+<section style="margin-bottom:36px;text-align:center;">
+  <section style="display:inline-block;background:linear-gradient(135deg,#6c5ce7 0%,#00b8d4 100%);color:#fff;font-size:12px;padding:5px 18px;border-radius:20px;margin-bottom:16px;letter-spacing:1px;">${SERIES_LABEL}</section>
+  <h1 style="font-size:26px;font-weight:800;color:#2a2a4a;line-height:1.4;margin:0 0 10px;">${s.main}</h1>
+  ${s.sub?`<p style="font-size:15px;color:#8a8aa8;margin:0 0 16px;">——${s.sub}——</p>`:''}
+  <section style="height:4px;width:60px;margin:0 auto;border-radius:2px;background:linear-gradient(90deg,#6c5ce7,#00b8d4,#fd79a8);"></section>
+</section>`; },
+  h2(t){ const c = splitChapter(t); return `<section style="margin:40px 0 18px;"><section style="display:flex;align-items:center;gap:12px;"><span style="display:inline-block;width:6px;height:28px;border-radius:3px;background:linear-gradient(180deg,#6c5ce7,#00b8d4);flex-shrink:0;"></span><h2 style="font-size:19px;font-weight:800;color:#2a2a4a;margin:0;line-height:1.5;">${c.cn?c.cn+'、':''}${c.text}</h2></section></section>`; },
+  h3(t){ return `<h3 style="font-size:17px;font-weight:700;color:#6c5ce7;margin:28px 0 12px;">✧ ${t}</h3>`; },
+  hr(){ return `<section style="text-align:center;margin:36px 0;"><span style="display:inline-block;width:30px;height:4px;border-radius:2px;background:linear-gradient(90deg,#6c5ce7,#00b8d4);margin:0 3px;"></span><span style="display:inline-block;width:8px;height:4px;border-radius:2px;background:#fd79a8;margin:0 3px;"></span><span style="display:inline-block;width:30px;height:4px;border-radius:2px;background:linear-gradient(90deg,#00b8d4,#a8edea);margin:0 3px;"></span></section>`; },
+  pre(code){ return `<section style="background:#1e1e2e;border-radius:16px;padding:16px;margin:20px 0;overflow-x:auto;"><pre style="margin:0;font-size:13px;line-height:1.7;color:#cdd6f4;font-family:Consolas,Monaco,monospace;white-space:pre-wrap;word-wrap:break-word;"><code>${code}</code></pre></section>`; },
+  signature(){ return `
+<section style="text-align:center;margin:36px 0 20px;"><section style="display:inline-block;height:4px;width:50px;border-radius:2px;background:linear-gradient(90deg,#6c5ce7,#00b8d4,#fd79a8);"></section><p style="font-size:12px;color:#b0b0c8;margin:8px 0 0;letter-spacing:3px;">END</p></section>
+<section style="margin-top:32px;background:linear-gradient(135deg,#f7f7fd 0%,#eef7ff 100%);border-radius:20px;padding:24px;">
+  <p style="font-size:15px;color:#2a2a4a;line-height:2;margin:0 0 8px;">感谢阅读 · 欢迎关注并转发</p>
+  <p style="font-size:14px;color:#8a8aa8;line-height:2;margin:0 0 10px;">点击主页加群或者私信加群一起学习AI。</p>
+  <p style="font-size:15px;color:#2a2a4a;line-height:2;margin:0;">如果你觉得今天这篇有收获，欢迎<strong style="color:#fd79a8;">点赞、在看、转发</strong>三连，我们下篇见。</p>
+</section>`; }
+},
+
+/* ---------- 8. 暗夜棱镜风 ---------- */
+prism: {
+  name:'暗夜棱镜风', dot:'#7c5cff', previewBg:'#05070f',
+  page:"background:#ffffff;padding:24px 18px;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;font-size:16px;line-height:1.9;color:#23263a;letter-spacing:.3px;",
+  styles:{
+    p:"font-size:16px;line-height:1.9;color:#23263a;margin:0 0 22px;letter-spacing:.3px;",
+    bqP:"margin:0 0 10px;font-size:15px;color:#23263a;line-height:1.9;letter-spacing:.3px;",
+    strong:"color:#7c5cff;font-weight:700;", em:"color:#ff5ca8;font-style:normal;font-weight:600;",
+    a:"color:#7c5cff;text-decoration:underline;",
+    code:"background:#f4f5fb;color:#7c5cff;padding:2px 8px;border-radius:6px;font-size:14px;font-family:Consolas,Monaco,monospace;",
+    ul:"font-size:16px;line-height:1.9;color:#23263a;padding-left:22px;margin:0 0 22px;letter-spacing:.3px;",
+    ol:"font-size:16px;line-height:1.9;color:#23263a;padding-left:22px;margin:0 0 22px;letter-spacing:.3px;",
+    li:"margin-bottom:10px;",
+    blockquote:"background:#f4f5fb;border:1px solid #e4e6f0;border-left:3px solid #00d4ff;border-radius:0 10px 10px 0;padding:16px 20px;margin:0 0 22px;",
+    blockquoteIntro:"background:#f4f5fb;border-left:3px solid #7c5cff;border-radius:0 10px 10px 0;padding:16px 20px;margin:0 0 28px;",
+    blockquoteKey:"background:linear-gradient(160deg,#0a0e1a 0%,#141b3a 70%,#1a1040 100%);border-radius:10px;padding:24px 26px;margin:28px 0;",
+    blockquoteKeyP:"margin:0 0 8px;font-size:17px;color:#ffffff;line-height:1.8;font-weight:800;",
+    table:"width:100%;border-collapse:collapse;font-size:14px;",
+    th:"padding:12px;text-align:center;color:#fff;font-weight:700;background:#23263a;",
+    td:"padding:10px 12px;text-align:center;color:#6b7086;border-bottom:1px solid #e4e6f0;",
+    img:"max-width:100%;border-radius:10px;display:block;margin:0 auto;border:1px solid #e4e6f0;",
+    figure:"margin:22px 0;text-align:center;",
+    figcaption:"font-size:13px;color:#9aa0b4;margin:8px 0 0;"
+  },
+  title(t){ const s = splitTitle(t); return `
+<section style="margin-bottom:32px;background:linear-gradient(160deg,#0a0e1a 0%,#141b3a 60%,#1a1040 100%);border-radius:10px;padding:32px 26px;text-align:center;">
+  <section style="display:inline-block;border:1px solid #7c5cff;color:#b8a9ff;font-size:11px;padding:4px 16px;border-radius:20px;margin-bottom:18px;letter-spacing:2px;">${SERIES_LABEL}</section>
+  <h1 style="font-size:26px;font-weight:800;color:#ffffff;line-height:1.4;margin:0 0 12px;">${s.main}</h1>
+  ${s.sub?`<p style="font-size:15px;margin:0 0 14px;color:#00d4ff;font-weight:600;">——${s.sub}——</p>`:''}
+  <section style="height:2px;width:80px;margin:0 auto;background:linear-gradient(90deg,#7c5cff,#00d4ff);"></section>
+</section>`; },
+  h2(t){ const c = splitChapter(t); return `<section style="margin:40px 0 18px;"><section style="display:flex;align-items:center;gap:12px;">${c.cn?`<span style="display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:34px;background:linear-gradient(135deg,#7c5cff,#00d4ff);color:#fff;font-size:15px;font-weight:800;border-radius:8px;padding:0 8px;flex-shrink:0;">${c.cn}</span>`:''}<h2 style="font-size:19px;font-weight:800;color:#23263a;margin:0;line-height:1.5;">${c.text}</h2></section></section>`; },
+  h3(t){ return `<h3 style="font-size:17px;font-weight:700;color:#7c5cff;margin:28px 0 12px;">▍${t}</h3>`; },
+  hr(){ return `<section style="text-align:center;margin:36px 0;"><span style="display:inline-block;width:50px;height:2px;background:linear-gradient(90deg,#7c5cff,#00d4ff);"></span></section>`; },
+  pre(code){ return `<section style="background:#0a0e1a;border-radius:10px;padding:16px;margin:20px 0;overflow-x:auto;"><pre style="margin:0;font-size:13px;line-height:1.7;color:#e8eaf0;font-family:Consolas,Monaco,monospace;white-space:pre-wrap;word-wrap:break-word;"><code>${code}</code></pre></section>`; },
+  signature(){ return `
+<section style="text-align:center;margin:36px 0 20px;"><section style="display:inline-block;width:50px;height:2px;background:linear-gradient(90deg,#7c5cff,#00d4ff);"></section><p style="font-size:12px;color:#9aa0b4;margin:8px 0 0;letter-spacing:3px;">END</p></section>
+<section style="margin-top:32px;background:linear-gradient(160deg,#0a0e1a 0%,#141b3a 100%);border-radius:10px;padding:24px 26px;">
+  <section style="height:2px;width:40px;background:linear-gradient(90deg,#7c5cff,#00d4ff);margin-bottom:14px;"></section>
+  <p style="font-size:15px;color:#e8eaf0;line-height:2;margin:0 0 8px;">感谢阅读 · 欢迎关注并转发</p>
+  <p style="font-size:14px;color:#9aa0b4;line-height:2;margin:0 0 10px;">点击主页加群或者私信加群一起学习AI。</p>
+  <p style="font-size:15px;color:#e8eaf0;line-height:2;margin:0;">如果你觉得今天这篇有收获，欢迎<strong style="color:#ff5ca8;">点赞、在看、转发</strong>三连，我们下篇见。</p>
+</section>`; }
+},
+
+/* ---------- 9. 青绿山水风 ---------- */
+landscape: {
+  name:'青绿山水风', dot:'#2f7a6d', previewBg:'#dfe4da',
+  page:"background:#f6f3ec;padding:24px 18px;font-family:'Noto Serif SC','Songti SC','SimSun',serif;font-size:16px;line-height:2;color:#2b3a34;letter-spacing:.5px;",
+  styles:{
+    p:"font-size:16px;line-height:2;color:#2b3a34;margin:0 0 22px;letter-spacing:.5px;font-family:'Noto Serif SC',serif;",
+    bqP:"margin:0 0 10px;font-size:15px;color:#3a4a44;line-height:2;letter-spacing:.5px;font-family:'Noto Serif SC',serif;",
+    strong:"color:#2f7a6d;font-weight:700;", em:"color:#b03a2e;font-style:normal;font-weight:600;",
+    a:"color:#2f7a6d;text-decoration:underline;",
+    code:"background:#e4e2d2;color:#8a4a2e;padding:2px 6px;font-size:14px;font-family:Consolas,Monaco,monospace;",
+    ul:"font-size:16px;line-height:2;color:#2b3a34;padding-left:22px;margin:0 0 22px;letter-spacing:.5px;font-family:'Noto Serif SC',serif;",
+    ol:"font-size:16px;line-height:2;color:#2b3a34;padding-left:22px;margin:0 0 22px;letter-spacing:.5px;font-family:'Noto Serif SC',serif;",
+    li:"margin-bottom:10px;",
+    blockquote:"background:#eef0e8;border-left:4px solid #9db3a8;padding:16px 20px;margin:0 0 22px;",
+    blockquoteIntro:"background:#eef0e8;border-left:4px solid #2f7a6d;padding:16px 20px;margin:0 0 28px;",
+    blockquoteKey:"background:#eef0e8;border-top:4px solid #2f7a6d;border-bottom:4px solid #4a6fa5;padding:18px 22px;margin:24px 0;text-align:center;",
+    table:"width:100%;border-collapse:collapse;font-size:14px;font-family:'Noto Serif SC',serif;",
+    th:"padding:11px 12px;text-align:center;color:#f6f3ec;font-weight:700;background:#2f7a6d;letter-spacing:1px;",
+    td:"padding:10px 12px;text-align:center;color:#6a7a72;border-bottom:1px solid #d8dcd0;",
+    img:"max-width:100%;display:block;margin:0 auto;border:1px solid #d8dcd0;padding:4px;background:#fff;",
+    figure:"margin:22px 0;text-align:center;",
+    figcaption:"font-size:13px;color:#9db3a8;margin:8px 0 0;font-family:'Noto Serif SC',serif;"
+  },
+  title(t){ const s = splitTitle(t); return `
+<section style="margin-bottom:36px;text-align:center;">
+  <section style="margin:0 auto 18px;text-align:center;"><span style="display:inline-block;width:30px;height:6px;background:#4a6fa5;border-radius:3px 0 0 3px;"></span><span style="display:inline-block;width:30px;height:6px;background:#3a9188;"></span><span style="display:inline-block;width:30px;height:6px;background:#2f7a6d;border-radius:0 3px 3px 0;"></span></section>
+  <p style="font-size:12px;color:#9db3a8;letter-spacing:3px;margin:0 0 12px;font-family:'Noto Serif SC',serif;">公众号 · 系列</p>
+  <h1 style="font-size:25px;font-weight:700;color:#2b3a34;line-height:1.5;margin:0 0 12px;font-family:'Noto Serif SC',serif;letter-spacing:2px;">${s.main}</h1>
+  ${s.sub?`<p style="font-size:15px;color:#4a6fa5;margin:0 0 16px;font-family:'Noto Serif SC',serif;">——${s.sub}——</p>`:''}
+  <section style="display:inline-block;border:1px solid #b03a2e;padding:2px 10px;"><p style="font-size:12px;color:#b03a2e;margin:0;letter-spacing:2px;font-family:'Noto Serif SC',serif;">手记</p></section>
+</section>`; },
+  h2(t){ const c = splitChapter(t); return `<section style="margin:40px 0 18px;"><section style="margin-bottom:8px;"><span style="display:inline-block;width:24px;height:4px;background:#4a6fa5;border-radius:2px 0 0 2px;"></span><span style="display:inline-block;width:24px;height:4px;background:#3a9188;"></span><span style="display:inline-block;width:24px;height:4px;background:#2f7a6d;border-radius:0 2px 2px 0;"></span></section><h2 style="font-size:19px;font-weight:700;color:#2b3a34;margin:0;line-height:1.5;font-family:'Noto Serif SC',serif;letter-spacing:1px;">${c.cn?'卷'+c.cn+' · ':''}${c.text}</h2></section>`; },
+  h3(t){ return `<h3 style="font-size:17px;font-weight:700;color:#2f7a6d;margin:28px 0 12px;font-family:'Noto Serif SC',serif;">· ${t} ·</h3>`; },
+  hr(){ return `<section style="text-align:center;margin:36px 0;"><span style="display:inline-block;width:24px;height:4px;background:#4a6fa5;border-radius:2px 0 0 2px;"></span><span style="display:inline-block;width:24px;height:4px;background:#3a9188;"></span><span style="display:inline-block;width:24px;height:4px;background:#2f7a6d;border-radius:0 2px 2px 0;"></span></section>`; },
+  pre(code){ return `<section style="background:#22312c;padding:16px;margin:20px 0;overflow-x:auto;"><pre style="margin:0;font-size:13px;line-height:1.7;color:#d8e0da;font-family:Consolas,Monaco,monospace;white-space:pre-wrap;word-wrap:break-word;"><code>${code}</code></pre></section>`; },
+  signature(){ return `
+<section style="text-align:center;margin:36px 0 20px;"><section style="display:inline-block;border:2px solid #b03a2e;padding:4px 12px;"><p style="font-size:13px;color:#b03a2e;margin:0;letter-spacing:4px;font-family:'Noto Serif SC',serif;font-weight:700;">卷终</p></section></section>
+<section style="margin-top:32px;padding-top:24px;border-top:2px solid #d8dcd0;">
+  <p style="font-size:15px;color:#2b3a34;line-height:2;margin:0 0 8px;letter-spacing:.5px;font-family:'Noto Serif SC',serif;">感谢阅读 · 欢迎关注并转发</p>
+  <p style="font-size:14px;color:#9db3a8;line-height:2;margin:0 0 10px;letter-spacing:.5px;font-family:'Noto Serif SC',serif;">点击主页加群或者私信加群一起学习AI。</p>
+  <p style="font-size:15px;color:#2b3a34;line-height:2;margin:0;letter-spacing:.5px;font-family:'Noto Serif SC',serif;">如果你觉得今天这篇有收获，欢迎<strong style="color:#b03a2e;">点赞、在看、转发</strong>三连，我们下篇见。</p>
+</section>`; }
+},
+
+/* ---------- 10. 枕边故事风 ---------- */
+storybook: {
+  name:'枕边故事风', dot:'#e07b39', previewBg:'#e8dcc8',
+  page:"background:#fdf8ef;padding:24px 18px;font-family:'Noto Serif SC','Songti SC','SimSun',serif;font-size:16px;line-height:2;color:#5c4a3a;letter-spacing:.3px;",
+  bqLabel:'❦ 打个比方 ❦',
+  bqIntroLabel:'— 前情提要 —',
+  bqKeyLabel:'❦',
+  dropCap:{ style:"float:left;font-size:48px;line-height:1;font-weight:700;color:#e07b39;margin:4px 10px 0 0;font-family:Georgia,'Noto Serif SC',serif;" },
+  styles:{
+    p:"font-size:16px;line-height:2;color:#5c4a3a;margin:0 0 22px;letter-spacing:.3px;font-family:'Noto Serif SC',serif;",
+    bqP:"margin:0 0 10px;font-size:15px;color:#5c4a3a;line-height:2;letter-spacing:.3px;font-family:'Noto Serif SC',serif;",
+    strong:"color:#e07b39;font-weight:700;", em:"color:#e07b39;font-style:normal;border-bottom:2px dotted #e07b39;",
+    a:"color:#e07b39;text-decoration:underline;",
+    code:"background:#f0e4cc;color:#b05a20;padding:2px 6px;border-radius:4px;font-size:14px;font-family:Consolas,Monaco,monospace;",
+    ul:"font-size:16px;line-height:2;color:#5c4a3a;padding-left:22px;margin:0 0 22px;letter-spacing:.3px;font-family:'Noto Serif SC',serif;",
+    ol:"font-size:16px;line-height:2;color:#5c4a3a;padding-left:24px;margin:0 0 22px;letter-spacing:.3px;font-family:'Noto Serif SC',serif;",
+    li:"margin-bottom:10px;",
+    blockquote:"background:#f5eddc;border:2px solid #e0d3b8;border-radius:8px;padding:14px 18px;margin:0 0 22px;",
+    blockquoteIntro:"background:#f5eddc;border:2px solid #e0d3b8;border-radius:8px;padding:18px 22px;margin:0 0 28px;text-align:center;",
+    blockquoteKey:"margin:28px 0;text-align:center;padding:0 16px;",
+    table:"width:100%;border-collapse:collapse;font-size:14px;font-family:'Noto Serif SC',serif;",
+    th:"padding:11px 12px;text-align:center;color:#fdf8ef;font-weight:700;background:#7a9b76;",
+    td:"padding:10px 12px;text-align:center;color:#a08a70;border-bottom:1px solid #e0d3b8;",
+    img:"max-width:100%;border-radius:4px;display:block;margin:0 auto;border:2px solid #e0d3b8;padding:6px;background:#fff;",
+    figure:"margin:22px 0;text-align:center;",
+    figcaption:"font-size:13px;color:#b09a7a;margin:8px 0 0;font-style:italic;"
+  },
+  title(t){ const s = splitTitle(t); return `
+<section style="margin-bottom:36px;text-align:center;">
+  <p style="font-size:20px;color:#c9a05a;margin:0 0 10px;">✦ ❦ ✦</p>
+  <p style="font-size:12px;color:#b09a7a;letter-spacing:3px;margin:0 0 12px;font-family:Georgia,serif;">公众号 · 系列</p>
+  <h1 style="font-size:25px;font-weight:700;color:#5c4a3a;line-height:1.5;margin:0 0 12px;font-family:Georgia,'Noto Serif SC',serif;">${s.main}</h1>
+  ${s.sub?`<p style="font-size:15px;color:#a08a70;margin:0 0 14px;font-family:'Noto Serif SC',serif;font-style:italic;">——${s.sub}——</p>`:''}
+  <p style="font-size:13px;color:#b09a7a;margin:0;">用技术让AI更实用</p>
+</section>`; },
+  h2(t){ const c = splitChapter(t); const label = c.cn ? '第'+c.cn+'章' : '章节'; return `<section style="margin:40px 0 20px;text-align:center;"><section style="display:inline-block;border:2px solid #e07b39;border-radius:8px;padding:8px 24px;"><p style="font-size:13px;color:#e07b39;margin:0 0 2px;font-family:Georgia,serif;letter-spacing:2px;">${label}</p><h2 style="font-size:18px;font-weight:700;color:#5c4a3a;margin:0;line-height:1.5;font-family:Georgia,'Noto Serif SC',serif;">${c.text}</h2></section></section>`; },
+  h3(t){ return `<h3 style="font-size:17px;font-weight:700;color:#e07b39;margin:28px 0 12px;font-family:Georgia,'Noto Serif SC',serif;text-align:center;">❧ ${t} ❧</h3>`; },
+  hr(){ return `<section style="text-align:center;margin:36px 0;"><span style="color:#c9a05a;font-size:16px;letter-spacing:8px;">✦ ❦ ✦</span></section>`; },
+  pre(code){ return `<section style="background:#3a3227;border-radius:8px;padding:16px;margin:20px 0;overflow-x:auto;"><pre style="margin:0;font-size:13px;line-height:1.7;color:#e8dcc8;font-family:Consolas,Monaco,monospace;white-space:pre-wrap;word-wrap:break-word;"><code>${code}</code></pre></section>`; },
+  signature(){ return `
+<section style="text-align:center;margin:36px 0 20px;"><p style="font-size:15px;color:#c9a05a;margin:0;letter-spacing:4px;font-family:Georgia,serif;">— 故事未完 —</p><p style="font-size:12px;color:#b09a7a;margin:6px 0 0;font-style:italic;">to be continued…</p></section>
+<section style="margin-top:32px;background:#f5eddc;border:2px solid #e0d3b8;border-radius:8px;padding:22px;text-align:center;">
+  <p style="font-size:14px;color:#c9a05a;margin:0 0 12px;font-family:Georgia,serif;">— 讲故事的人 —</p>
+  <p style="font-size:15px;color:#5c4a3a;line-height:2;margin:0 0 8px;font-family:'Noto Serif SC',serif;">感谢阅读 · 欢迎关注并转发</p>
+  <p style="font-size:14px;color:#a08a70;line-height:2;margin:0 0 10px;font-family:'Noto Serif SC',serif;">点击主页加群或者私信加群一起学习AI。</p>
+  <p style="font-size:15px;color:#5c4a3a;line-height:2;margin:0;font-family:'Noto Serif SC',serif;">如果你觉得今天这篇有收获，欢迎<strong style="color:#e07b39;">点赞、在看、转发</strong>三连，我们下篇见。</p>
+</section>`; }
+},
+
+/* ---------- 11. 活动宣发风（v5.2 新增 · 海报配色版） ---------- */
+launch: {
+  name:'活动宣发风', dot:'#1E40AF', previewBg:'#F8F4EA',
+  page:"background:#F8F4EA;padding:24px 18px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;font-size:16px;line-height:1.9;color:#1A1A1A;letter-spacing:.3px;",
+  bqIntroLabel:'活动速览',
+  bqKeyLabel:'现场快报',
+  styles:{
+    p:"font-size:16px;line-height:1.9;color:#1A1A1A;margin:0 0 22px;letter-spacing:.3px;",
+    bqP:"margin:0 0 10px;font-size:15px;color:#1A1A1A;line-height:1.9;letter-spacing:.3px;",
+    strong:"color:#1A1A1A;font-weight:800;background:linear-gradient(180deg,transparent 60%,#F4E94B 60%);padding:0 2px;",
+    em:"color:#1E40AF;font-style:normal;font-weight:700;border-bottom:2px solid #F4E94B;",
+    a:"color:#1E40AF;text-decoration:underline;font-weight:600;text-decoration-color:#F4E94B;text-underline-offset:3px;",
+    code:"background:#1A1A1A;color:#F4E94B;padding:2px 8px;border-radius:4px;font-size:14px;font-family:Consolas,Monaco,monospace;",
+    ul:"font-size:16px;line-height:1.9;color:#1A1A1A;padding-left:22px;margin:0 0 22px;letter-spacing:.3px;",
+    ol:"font-size:16px;line-height:1.9;color:#1A1A1A;padding-left:22px;margin:0 0 22px;letter-spacing:.3px;",
+    li:"margin-bottom:10px;",
+    blockquote:"background:#FAF7EE;border-left:4px solid #1E40AF;border-radius:0 12px 12px 0;padding:18px 22px;margin:0 0 22px;",
+    blockquoteIntro:"background:#1E40AF;color:#FFFFFF;border-radius:12px;padding:22px 26px;margin:0 0 28px;",
+    blockquoteKey:"background:#1A1A1A;color:#F4E94B;border-radius:12px;padding:22px 26px;margin:24px 0;box-shadow:0 4px 16px rgba(0,0,0,.18);",
+    blockquoteKeyP:"margin:0;font-size:17px;color:#F4E94B;line-height:1.9;font-weight:700;",
+    table:"width:100%;border-collapse:collapse;font-size:14px;border-radius:8px;overflow:hidden;",
+    th:"padding:12px;text-align:center;color:#FFFFFF;font-weight:700;background:#1E40AF;letter-spacing:1px;",
+    td:"padding:10px 12px;text-align:center;color:#1A1A1A;background:#FFFFFF;border-bottom:1px solid #ECE6D3;",
+    img:"max-width:100%;border-radius:12px;display:block;margin:0 auto;border:4px solid #FFFFFF;box-shadow:0 8px 32px rgba(0,0,0,.18);",
+    figure:"margin:32px 0;text-align:center;",
+    figcaption:"font-size:13px;color:#1E40AF;margin:12px 0 0;font-weight:600;letter-spacing:1px;"
+  },
+  title(t){ const s = splitTitle(t); return `
+<section style="margin-bottom:36px;">
+  <section style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+    <span style="display:inline-block;background:#1E40AF;color:#FFFFFF;font-size:12px;padding:5px 14px;border-radius:4px;font-weight:700;letter-spacing:1px;">活动预告</span>
+    <span style="display:inline-block;background:#FFFFFF;color:#1E40AF;font-size:12px;padding:5px 14px;border:1.5px solid #1E40AF;border-radius:4px;font-weight:700;letter-spacing:1px;">2026.08.22</span>
+  </section>
+  <h1 style="font-size:28px;font-weight:900;color:#1E40AF;line-height:1.35;margin:0 0 10px;letter-spacing:-.5px;">${s.main}</h1>
+  ${s.sub?`<p style="font-size:15px;color:#3B6FD4;margin:0 0 14px;font-weight:600;">${s.sub}</p>`:''}
+  <section style="height:4px;width:60px;background:#1E40AF;"></section>
+</section>`; },
+  h2(t){ const c = splitChapter(t); return `<section style="margin:40px 0 18px;"><section style="display:flex;align-items:center;gap:14px;">${c.cn?`<span style="display:inline-flex;align-items:center;justify-content:center;min-width:40px;height:40px;background:#1E40AF;color:#FFFFFF;font-size:16px;font-weight:800;border-radius:8px;padding:0 10px;flex-shrink:0;">${c.cn}</span>`:''}<h2 style="font-size:19px;font-weight:800;color:#1A1A1A;margin:0;line-height:1.4;">${c.text}</h2></section></section>`; },
+  h3(t){ return `<h3 style="font-size:17px;font-weight:700;color:#1E40AF;margin:28px 0 12px;padding-left:12px;border-left:4px solid #F4E94B;">${t}</h3>`; },
+  hr(){ return `<section style="text-align:center;margin:36px 0;"><span style="display:inline-block;width:60px;height:3px;background:#1A1A1A;"></span></section>`; },
+  pre(code){ return `<section style="background:#1A1A1E;border-radius:12px;padding:16px;margin:20px 0;overflow-x:auto;"><pre style="margin:0;font-size:13px;line-height:1.7;color:#E0E0E0;font-family:Consolas,Monaco,monospace;white-space:pre-wrap;word-wrap:break-word;"><code>${code}</code></pre></section>`; },
+  signature(){ return `
+<section style="text-align:center;margin:40px 0 24px;">
+  <section style="display:inline-block;background:#1E40AF;color:#FFFFFF;padding:10px 36px;border-radius:30px;font-size:14px;font-weight:700;letter-spacing:2px;box-shadow:0 4px 12px rgba(30,64,175,.3);">8月22日 · 不见不散</section>
+</section>
+<section style="margin-top:32px;background:#1E40AF;color:#FFFFFF;border-radius:16px;padding:28px 30px;box-shadow:0 8px 24px rgba(30,64,175,.25);">
+  <p style="font-size:15px;color:#FFFFFF;line-height:2;margin:0 0 8px;">感谢阅读 · 欢迎关注并转发</p>
+  <p style="font-size:14px;color:rgba(255,255,255,.85);line-height:2;margin:0 0 10px;">点击主页加群或者私信加群一起学习AI。</p>
+  <p style="font-size:15px;color:#FFFFFF;line-height:2;margin:0;">如果你觉得今天这篇有收获，欢迎<strong style="color:#F4E94B;">点赞、在看、转发</strong>三连，我们下篇见。</p>
+</section>`; }
+}
+};
+
+/* ============================================================
+ * 4. 渲染管线
+ * ============================================================ */
+const editor = document.getElementById('editor');
+const preview = document.getElementById('preview-article');
+const previewScroll = document.getElementById('preview-scroll');
+const themeBar = document.getElementById('theme-bar');
+const themeNameEl = document.getElementById('theme-name');
+const wordCountEl = document.getElementById('word-count');
+const optSignature = document.getElementById('opt-signature');
+const optSeries = document.getElementById('opt-series');
+
+let currentTheme = localStorage.getItem('nzmd_theme') || 'handdrawn';
+
+function applyTheme(root, t){
+  root.setAttribute('style', t.page);
+
+  root.querySelectorAll('section[data-fig]').forEach(f=>{
+    f.setAttribute('style', t.styles.figure);
+    f.querySelectorAll('img').forEach(im=>im.setAttribute('style', t.styles.img));
+    const cap = f.querySelector('[data-cap]');
+    if(cap){ cap.setAttribute('style', t.styles.figcaption); cap.removeAttribute('data-cap'); }
+    f.removeAttribute('data-fig');
+  });
+
+  root.querySelectorAll('h1').forEach((h,i)=>{ h.outerHTML = (i===0) ? t.title(h.textContent) : t.h2(h.textContent); });
+  root.querySelectorAll('h2').forEach(h=>{ h.outerHTML = t.h2(h.textContent); });
+  root.querySelectorAll('h3, h4').forEach(h=>{ h.outerHTML = t.h3(h.textContent); });
+
+  let bqIdx = 0;
+  root.querySelectorAll('blockquote').forEach(b=>{
+    const isIntro = (bqIdx === 0 && optSeries.checked);
+    const fs = b.querySelector('strong');
+    const startsBold = fs && b.textContent.trim().startsWith(fs.textContent.trim());
+    let st = t.styles.blockquote, pst = t.styles.bqP, label = null, labelStyle = null;
+    if(isIntro){
+      st = t.styles.blockquoteIntro;
+      if(t.bqIntroLabel){ label = t.bqIntroLabel; labelStyle = (t === THEMES.launch) ? "margin:0 0 10px;font-size:12px;color:rgba(255,255,255,.85);letter-spacing:3px;text-align:center;font-weight:600;" : "margin:0 0 8px;font-size:12px;letter-spacing:2px;color:inherit;opacity:.75;font-family:Georgia,serif;text-align:center;"; }
+    } else if(startsBold && t.styles.blockquoteKey){
+      st = t.styles.blockquoteKey;
+      if(t.styles.blockquoteKeyP) pst = t.styles.blockquoteKeyP;
+      if(t.bqKeyLabel){
+        label = t.bqKeyLabel;
+        labelStyle = (t === THEMES.launch)
+          ? "margin:0 0 10px;font-size:13px;color:rgba(255,255,255,.95);letter-spacing:3px;text-align:center;font-weight:700;"
+          : (t.bqKeyLabel === '"')
+              ? "font-size:40px;color:#c0392b;margin:0;line-height:.5;font-family:Georgia,serif;text-align:center;"
+              : "margin:0 0 8px;font-size:12px;letter-spacing:2px;color:#c9a05a;text-align:center;font-family:Georgia,serif;";
+      }
+    } else if(t.bqLabel){
+      label = t.bqLabel;
+      labelStyle = "margin:0 0 8px;font-size:12px;letter-spacing:2px;color:#8a8a8a;font-family:Georgia,serif;";
+      if(t === THEMES.geek) labelStyle = "margin:0 0 6px;font-size:12px;color:#636c76;font-family:'Cascadia Code',Consolas,monospace;";
+      if(t === THEMES.editorial) labelStyle = "margin:0 0 8px;font-size:11px;color:#6b6b6b;letter-spacing:3px;font-family:Georgia,serif;";
+      if(t === THEMES.storybook) labelStyle = "margin:0 0 6px;font-size:13px;color:#c9a05a;text-align:center;font-family:Georgia,serif;";
+    }
+    b.setAttribute('style', st);
+    if(label) b.insertAdjacentHTML('afterbegin', '<p style="'+labelStyle+'">'+label+'</p>');
+    b.querySelectorAll('p').forEach((p,pi)=>{
+      if(label && pi === 0) return;
+      let actualPst = pst;
+      /* launch 主题特判：intro 是深蓝块 → p 白色；key 是黑底块 → p 黄色 */
+      if(t === THEMES.launch && st === t.styles.blockquoteIntro){
+        actualPst = "margin:0 0 10px;font-size:15px;color:#FFFFFF;line-height:1.9;letter-spacing:.3px;";
+      } else if(t === THEMES.launch && st === t.styles.blockquoteKey){
+        actualPst = "margin:0 0 10px;font-size:16px;color:#F4E94B;line-height:1.9;font-weight:700;letter-spacing:.3px;";
+      }
+      p.setAttribute('style', actualPst);
+    });
+    bqIdx++;
+  });
+
+  root.querySelectorAll('p').forEach(p=>{ if(!p.closest('blockquote')) p.setAttribute('style', t.styles.p); });
+  root.querySelectorAll('strong').forEach(s=>s.setAttribute('style', t.styles.strong));
+  root.querySelectorAll('em').forEach(s=>s.setAttribute('style', t.styles.em));
+  root.querySelectorAll('a').forEach(s=>s.setAttribute('style', t.styles.a));
+  root.querySelectorAll('code').forEach(s=>{ if(!s.closest('pre')) s.setAttribute('style', t.styles.code); });
+  root.querySelectorAll('ul').forEach(s=>s.setAttribute('style', t.styles.ul));
+  root.querySelectorAll('ol').forEach(s=>s.setAttribute('style', t.styles.ol));
+  root.querySelectorAll('li').forEach(s=>s.setAttribute('style', t.styles.li));
+
+  root.querySelectorAll('table').forEach(tb=>{
+    tb.setAttribute('style', t.styles.table);
+    tb.querySelectorAll('th').forEach(c=>c.setAttribute('style', t.styles.th));
+    tb.querySelectorAll('td').forEach(c=>c.setAttribute('style', t.styles.td));
+    const wrap = document.createElement('section');
+    wrap.setAttribute('style', 'margin:24px 0;overflow-x:auto;');
+    tb.parentNode.insertBefore(wrap, tb);
+    wrap.appendChild(tb);
+  });
+
+  root.querySelectorAll('pre').forEach(pre=>{
+    const code = pre.querySelector('code');
+    pre.outerHTML = t.pre(code ? code.innerHTML : pre.innerHTML);
+  });
+
+  root.querySelectorAll('hr').forEach(h=>{ h.outerHTML = t.hr(); });
+
+  if(t.dropCap){
+    const firstP = root.querySelector('p');
+    if(firstP && !firstP.closest('blockquote')){
+      const txt = firstP.innerHTML;
+      const ch = txt.charAt(0);
+      if(/[\u4e00-\u9fa5A-Za-z]/.test(ch)){
+        firstP.innerHTML = '<span style="'+t.dropCap.style+'">'+ch+'</span>' + txt.slice(1);
+      }
+    }
+  }
+
+  if(optSignature.checked && root.textContent.trim()) root.insertAdjacentHTML('beforeend', t.signature());
+}
+
+/* 代码块右上角加"复制代码"按钮（仅预览交互层，复制正文时剔除） */
+function addCodeCopyButtons(){
+  preview.querySelectorAll('pre').forEach(pre=>{
+    const host = pre.parentElement;
+    if(!host || host.querySelector(':scope > .code-copy-btn')) return;
+    host.style.position = 'relative';
+    const btn = document.createElement('button');
+    btn.className = 'code-copy-btn';
+    btn.textContent = '复制代码';
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      copyText(pre.textContent);
+      btn.textContent = '已复制 ✓';
+      setTimeout(()=>{ btn.textContent = '复制代码'; }, 1500);
+    });
+    host.appendChild(btn);
+  });
+}
+
+function copyText(text){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); } catch(e){}
+  ta.remove();
+}
+
+function render(){
+  const t = THEMES[currentTheme];
+  const md = editor.value;
+  /* 空内容：只显示主题底色+提示，不追加签名 */
+  if(!md.trim()){
+    preview.setAttribute('style', t.page);
+    preview.innerHTML = '<p style="margin:80px 0;text-align:center;font-size:14px;color:#b6b6b6;letter-spacing:1px;">在左侧输入 Markdown，这里实时显示排版效果</p>';
+    previewScroll.style.background = t.previewBg;
+    themeNameEl.textContent = t.name;
+    wordCountEl.textContent = '0 字';
+    document.querySelectorAll('.theme-pill').forEach(p=>{
+      p.classList.toggle('active', p.dataset.id === currentTheme);
+    });
+    localStorage.setItem('nzmd_content', md);
+    localStorage.setItem('nzmd_theme', currentTheme);
+    return;
+  }
+  preview.innerHTML = parseMD(md);
+  applyTheme(preview, t);
+  addCodeCopyButtons();
+  previewScroll.style.background = t.previewBg;
+  themeNameEl.textContent = t.name;
+  const plain = md.replace(/[#>*`|\-\[\]()!]/g,'').replace(/\s/g,'');
+  wordCountEl.textContent = plain.length + ' 字';
+  document.querySelectorAll('.theme-pill').forEach(p=>{
+    p.classList.toggle('active', p.dataset.id === currentTheme);
+  });
+  localStorage.setItem('nzmd_content', md);
+  localStorage.setItem('nzmd_theme', currentTheme);
+}
+
+/* ============================================================
+ * 5. UI 初始化
+ * ============================================================ */
+Object.keys(THEMES).forEach(id=>{
+  const t = THEMES[id];
+  const pill = document.createElement('span');
+  pill.className = 'theme-pill';
+  pill.dataset.id = id;
+  pill.innerHTML = '<span class="dot" style="background:'+t.dot+'"></span>' + t.name;
+  pill.onclick = ()=>{ currentTheme = id; render(); };
+  themeBar.appendChild(pill);
+});
+
+let renderTimer = null;
+editor.addEventListener('input', ()=>{
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(render, 200);
+});
+editor.addEventListener('keydown', e=>{
+  if(e.key === 'Tab'){ e.preventDefault();
+    const s = editor.selectionStart;
+    editor.setRangeText('  ', s, editor.selectionEnd, 'end');
+  }
+});
+optSignature.addEventListener('change', render);
+optSeries.addEventListener('change', render);
+
+document.getElementById('btn-copy').onclick = ()=>{
+  /* 克隆预览节点：剔除"复制代码"交互按钮，只复制干净正文 */
+  const clone = preview.cloneNode(true);
+  clone.querySelectorAll('.code-copy-btn').forEach(b=>b.remove());
+  clone.removeAttribute('id');
+  clone.style.position = 'fixed';
+  clone.style.left = '-99999px';
+  clone.style.top = '0';
+  clone.style.width = preview.offsetWidth + 'px';
+  document.body.appendChild(clone);
+  const range = document.createRange();
+  range.selectNode(clone);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch(e){}
+  sel.removeAllRanges();
+  clone.remove();
+  toast(ok ? '已复制！去公众号编辑器 Ctrl+V 粘贴' : '复制失败，请手动全选预览区复制');
+};
+document.getElementById('btn-clear').onclick = ()=>{ editor.value=''; render(); };
+document.getElementById('btn-sample').onclick = ()=>{ editor.value = SAMPLE; render(); };
+
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 2400);
+}
+
+const SAMPLE = `# 不只是"聊天机器人"——AI Agent 到底是什么？
+
+> 本文是「AI 基础设施科普」系列第 5 篇。上一篇我们聊了上下文窗口，知道了 AI 为什么会"变笨"。今天聊 AI 怎么从"只会说话"变成"会自己干活"。
+
+你可能用过 ChatGPT 聊天，也听过"AI Agent"这个词。它们最大的区别可以用一句话说清：
+
+**Chatbot 只能"说话"，Agent 能"做事"。**
+
+## 一、Chatbot 和 Agent 有什么区别？
+
+> 你去餐厅，Chatbot 像一个只会念菜单的服务员——你问什么它答什么，但不会帮你下单、上菜、结账。
+>
+> Agent 像一个真正的餐厅经理——你告诉他"我要办一场十人聚餐"，他自己安排菜单、下单、排座位、催菜。
+
+| 维度 | Chatbot | Agent |
+|:-:|:-:|:-:|
+| 交互方式 | 你说一句，它回一句 | 你给目标，它拆步骤执行 |
+| 工具使用 | 不能调用外部工具 | 可以读写文件、搜索网络 |
+| 任务复杂度 | 单轮问答 | 多步任务、循环执行 |
+
+### 一个真实例子
+
+让 AI 帮你查股价：
+
+1. **感知**：收到用户需求"查一下茅台股价"
+2. **思考**：需要调用搜索工具
+3. **行动**：执行搜索，拿到结果，组织语言回复
+
+---
+
+## 二、普通人怎么用 Agent？
+
+- **Cursor**：AI 编程助手，能自动读代码、改代码、跑测试
+- **Claude Code**：命令行 Agent，能自主完成整个开发任务
+- **GitHub Copilot**：从 Issue 到 PR 全自动
+
+秒哒官网直接访问：https://miaoda.baidu.com 就能开始创建应用。
+
+![图：在线图片示例——替换成你的文章配图即可](https://picsum.photos/id/1015/600/320)
+
+上一篇回顾戳这里：[AI 聊着聊着就"变笨"了？——上下文窗口深度解析](https://mp.weixin.qq.com/s/example)
+
+\`\`\`
+# Prompt 示例
+你是一个懂心理学的"反内耗闺蜜"
+1. 潜台词翻译
+2. 高情商回怼
+3. 情绪急救包
+\`\`\`
+
+> **Chatbot 是 AI 的"嘴"，Agent 是 AI 的"嘴 + 手 + 脑"。** 它不只是能聊天，而是能自己感知环境、规划步骤、调用工具、循环执行，直到把任务做完。
+
+下一篇我们聊 RAG——让 AI 读你的私有数据而不是瞎编。
+`;
+
+editor.value = localStorage.getItem('nzmd_content') || SAMPLE;
+render();
+</script>
+</body>
+</html>
