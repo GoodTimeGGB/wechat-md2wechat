@@ -38,6 +38,20 @@
 
 ---
 
+## 📋 一键安装：复制这句话，直接发给你的 AI
+
+无论你用哪个桌面 Agent，**最省事的方式就是直接把这句话发给它**：
+
+```
+帮我安装这个公众号排版技能：https://github.com/GoodTimeGGB/wechat-md2wechat
+```
+
+大多数能联网的桌面 Agent（WorkBuddy、Claude Code / Cowork、Codex、Trae、千问办公、百度 Dumate 等）看到这个 GitHub 链接 +「安装 / 技能」关键词，会**自动把仓库 clone 下来、读取 `SKILL.md` 并加载为可用技能**。发完这句话，再发文章就能直接排版。
+
+如果某个 Agent 不支持「从链接自动安装」，翻到下方对应小节，用那个 Agent 专属的指令块即可。
+
+---
+
 ## 支持的桌面 Agent 与接入方法
 
 ### 第 0 步：先获取本仓库
@@ -59,7 +73,12 @@ git clone https://github.com/GoodTimeGGB/wechat-md2wechat.git
 
 - **方式一（推荐）· 技能市场导入**：SkillHub / WorkBuddy 技能市场 → 「GitHub 导入」→ 绑定本仓库（分支 `main`，路径留空＝仓库根）→ 读取到 `SKILL.md` + `manifest.yaml` 后提交。后续本仓库 push，SkillHub 自动同步。
 - **方式二（本地）· 放技能目录**：把仓库复制到 `~/.workbuddy/skills/wechat-md2wechat/`，重启 WorkBuddy 即识别。
-- **用法**：对话里说「公众号排版 / 微信排版 / Markdown 转公众号 / md2wechat / 把这篇排成公众号」，WorkBuddy 会按 `SKILL.md` 工作流产出 HTML，或帮你用工具。
+
+👉 **发给 WorkBuddy 的指令（复制即可）**
+
+```
+帮我从 GitHub 安装公众号排版技能，仓库地址：https://github.com/GoodTimeGGB/wechat-md2wechat（分支 main，根目录）
+```
 
 ---
 
@@ -75,14 +94,20 @@ cp -r wechat-md2wechat ~/.claude/skills/wechat-md2wechat
 cp -r wechat-md2wechat .claude/skills/wechat-md2wechat
 ```
 
-- **用法**：对话里说「用 wechat-md2wechat 把这篇 Markdown 排成公众号」，Claude 会读取 `SKILL.md` 并调用 `assets/index.html` 完成排版。
+👉 **发给 Claude Code / Cowork 的指令（复制即可）**
+
+```
+请执行：git clone https://github.com/GoodTimeGGB/wechat-md2wechat.git ~/.claude/skills/wechat-md2wechat
+安装完成后，之后我用“wechat-md2wechat”这个技能把文章排成公众号。
+```
+
 - 不同 Claude 版本入口名称可能略有差异，认准「能放一个技能 / 指令文件夹」的位置即可。
 
 ---
 
 ### 3. OpenAI Codex（CLI）
 
-Codex 没有独立 skills 目录，但可以把技能说明作为**指令 / 上下文**注入：
+Codex 没有独立 skills 目录，但可以把技能说明作为**指令 / 上下文**注入。
 
 - **方法一 · 指令注入**：把 `SKILL.md` 全文贴进你的提示词，或存进项目 `AGENTS.md` / `codex.md` 作为长期上下文。
 - **方法二 · 直接驱动**：让 Codex 读取仓库并用工具：
@@ -93,6 +118,12 @@ Codex 没有独立 skills 目录，但可以把技能说明作为**指令 / 上�
 
 - 也可在 Codex 会话里直接说「打开 assets/index.html 帮我排版」。
 
+👉 **发给 Codex 的指令（复制即可）**
+
+```
+请阅读 https://raw.githubusercontent.com/GoodTimeGGB/wechat-md2wechat/main/SKILL.md ，把它作为你的长期排版规范。以后我把 Markdown 发给你时，按里面的规范转成公众号内联样式 HTML。
+```
+
 ---
 
 ### 4. Trae（TraeWork，字节）
@@ -101,7 +132,12 @@ Trae 支持**项目级 Rules / 自定义 AI 指令**：
 
 - 把 `SKILL.md` 内容写入项目 `.trae/rules/wechat-md2wechat.md`（或在 Trae 设置里的「Rules for AI」粘贴）。
 - 或在对话开头贴一句：「请先阅读 `./SKILL.md`，之后按它的规范把我的文章排成公众号 HTML」。
-- **用法**：把 Markdown 发过去，说「排成公众号」，Trae 会按规则产出，或直接操作 `assets/index.html`。
+
+👉 **发给 Trae 的指令（复制即可）**
+
+```
+把 https://raw.githubusercontent.com/GoodTimeGGB/wechat-md2wechat/main/SKILL.md 的内容加入本项目的 Rules（Rules for AI）。之后帮我把文章排成公众号。
+```
 
 ---
 
@@ -109,7 +145,12 @@ Trae 支持**项目级 Rules / 自定义 AI 指令**：
 
 - **自建智能体**：在千问办公（或通义千问智能体平台）新建智能体，把 `SKILL.md` 全文粘贴进「智能体指令 / 角色设定」。
 - **附参考文件**：把 `assets/index.html` 与 `SKILL.md` 作为知识库 / 附件上传，让智能体读取后按规范排版。
-- **用法**：对话里发文章 +「排成公众号格式」，智能体按指令产出 HTML。
+
+👉 **发给千问办公 / 通义的指令（复制即可）**
+
+```
+请阅读这个技能说明：https://raw.githubusercontent.com/GoodTimeGGB/wechat-md2wechat/main/SKILL.md ，并把它设为你的智能体指令。以后我发文章时，按它的规范排成公众号 HTML。
+```
 
 ---
 
@@ -117,7 +158,12 @@ Trae 支持**项目级 Rules / 自定义 AI 指令**：
 
 - 在 Dumate 的**自定义 Agent / 智能体设定**里，把 `SKILL.md` 作为「系统指令 / 提示词」粘贴。
 - 或上传 `SKILL.md` + `assets/index.html` 作为参考文件，让 Agent 读取后排版。
-- **用法**：发文章 +「用 wechat-md2wechat 规范排成公众号」。
+
+👉 **发给百度 Dumate 的指令（复制即可）**
+
+```
+把 https://raw.githubusercontent.com/GoodTimeGGB/wechat-md2wechat/main/SKILL.md 设为你的系统指令。以后我发 Markdown，按它的规范排成公众号 HTML。
+```
 
 ---
 
@@ -130,7 +176,43 @@ Trae 支持**项目级 Rules / 自定义 AI 指令**：
 3. 把 `assets/index.html` 作为参考文件 / 附件交给 Agent
 4. 对话里说「按 SKILL.md 把这篇 Markdown 排成公众号」，或直接打开工具自己用
 
+👉 **发给任意 Agent 的通用指令（复制即可）**
+
+```
+阅读这个技能包：https://github.com/GoodTimeGGB/wechat-md2wechat ，把 SKILL.md 设为你的系统指令，并把 assets/index.html 作为参考工具。之后按规范把我的文章排成公众号。
+```
+
 > 各平台菜单名称（如「智能体指令」「Rules」「系统提示词」）可能随版本变化，认准「能粘贴一段长期生效的指令」的入口即可。
+
+---
+
+## 🚀 日常使用：把文章交给 Agent 排版
+
+装好技能后，每次排版直接发这句话 + 你的文章（把 `<粘贴文章>` 换成你的 Markdown）：
+
+```
+用 wechat-md2wechat 把下面这篇 Markdown 排成公众号（手绘笔记风），输出可直接粘贴到公众号编辑器的内联样式 HTML：
+
+<粘贴你的 Markdown 文章>
+```
+
+**主题关键词**（替换上面括号里的风格即可）：
+
+| 想要的效果 | 关键词 |
+|------------|--------|
+| 手作编辑感、便签涂鸦 | 手绘笔记 / handdrawn（默认） |
+| 明快圆润、彩色胶囊 | 卡通 / cartoon |
+| 宣纸留白、书法标题 | 书法 / ink |
+| 大量留白、克制 | 极简 / minimal |
+| 等宽字体、终端感 | 极客 / geek |
+| 网格、栏目感 | 杂志 / editorial |
+| 渐变光晕、梦幻 | 柔光 / aurora |
+| 深色玻璃、霓虹 | 棱镜 / prism |
+| 青绿设色、山水 | 山水 / landscape |
+| 温暖插画、手写 | 故事 / storybook |
+| 深蓝+亮黄、海报感 | 宣发 / launch |
+
+如果不指定风格，默认走「手绘笔记风」。
 
 ---
 
