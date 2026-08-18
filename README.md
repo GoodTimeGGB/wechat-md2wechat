@@ -6,6 +6,16 @@
 
 ---
 
+## 🌐 在线体验（无需下载）
+
+直接打开下面这个部署在 GitHub Pages 上的同款工具，功能和本地 `index.html` 完全一致：
+
+👉 **https://goodtimeggb.github.io/wechat-md2wechat/**
+
+左边写 / 粘贴 Markdown，右边实时预览 11 套主题，点「复制」即可粘贴进公众号编辑器。纯前端、离线也能用（把页面存下来就行）。
+
+---
+
 ## 它能做什么
 
 - **Markdown → 公众号内联样式 HTML**：粘贴不丢格式，直接进公众号编辑器
@@ -22,7 +32,7 @@
 
 适合只想快速排好一篇文章的你，全程不依赖任何 Agent。
 
-1. 获取 `assets/index.html`（见下方「第 0 步：获取仓库」）
+1. 获取 `index.html`（见下方「第 0 步：获取仓库」）
 2. 用浏览器打开（双击即可，**离线可用**）
 3. 左侧粘贴 / 写 Markdown，顶部选主题，右侧实时预览
 4. 点「复制」，回到公众号编辑器 `Ctrl / Cmd + V` 粘贴，排版即生效
@@ -32,7 +42,7 @@
 适合你把文章丢给 Agent，让它按规范产出公众号 HTML，或让它帮你打开工具、批量处理。
 
 - **AI 直接产出 HTML**：Agent 读取 `SKILL.md` 后，按规范把你的 Markdown 转成公众号 HTML
-- **AI 代操作工具**：让 Agent 打开 `assets/index.html`，按你的要求选主题、复制结果
+- **AI 代操作工具**：让 Agent 打开 `index.html`，按你的要求选主题、复制结果
 
 > 方式 B 的前提是让 Agent「认识」这个技能包——下面按不同 Agent 给出接入方法。
 
@@ -64,7 +74,7 @@ git clone https://github.com/GoodTimeGGB/wechat-md2wechat.git
 
 或在 GitHub 页面 `Code → Download ZIP`。技能包核心是两份文件：
 
-- `assets/index.html` —— 排版工具本体（离线单文件）
+- `index.html` —— 排版工具本体（离线单文件）
 - `SKILL.md` —— 给 AI Agent 看的「使用说明书」
 
 ---
@@ -113,10 +123,10 @@ Codex 没有独立 skills 目录，但可以把技能说明作为**指令 / 上�
 - **方法二 · 直接驱动**：让 Codex 读取仓库并用工具：
 
   ```
-  codex exec "读取 SKILL.md，把 article.md 按规范转成公众号 HTML（参考 assets/index.html 的主题样式）"
+  codex exec "读取 SKILL.md，把 article.md 按规范转成公众号 HTML（参考 index.html 的主题样式）"
   ```
 
-- 也可在 Codex 会话里直接说「打开 assets/index.html 帮我排版」。
+- 也可在 Codex 会话里直接说「打开 index.html 帮我排版」。
 
 👉 **发给 Codex 的指令（复制即可）**
 
@@ -144,7 +154,7 @@ Trae 支持**项目级 Rules / 自定义 AI 指令**：
 ### 5. 千问办公 / 通义（Qwen）
 
 - **自建智能体**：在千问办公（或通义千问智能体平台）新建智能体，把 `SKILL.md` 全文粘贴进「智能体指令 / 角色设定」。
-- **附参考文件**：把 `assets/index.html` 与 `SKILL.md` 作为知识库 / 附件上传，让智能体读取后按规范排版。
+- **附参考文件**：把 `index.html` 与 `SKILL.md` 作为知识库 / 附件上传，让智能体读取后按规范排版。
 
 👉 **发给千问办公 / 通义的指令（复制即可）**
 
@@ -157,7 +167,7 @@ Trae 支持**项目级 Rules / 自定义 AI 指令**：
 ### 6. 百度 Dumate
 
 - 在 Dumate 的**自定义 Agent / 智能体设定**里，把 `SKILL.md` 作为「系统指令 / 提示词」粘贴。
-- 或上传 `SKILL.md` + `assets/index.html` 作为参考文件，让 Agent 读取后排版。
+- 或上传 `SKILL.md` + `index.html` 作为参考文件，让 Agent 读取后排版。
 
 👉 **发给百度 Dumate 的指令（复制即可）**
 
@@ -173,13 +183,13 @@ Trae 支持**项目级 Rules / 自定义 AI 指令**：
 
 1. 下载本仓库（见第 0 步）
 2. 把 `SKILL.md` 内容设为 Agent 的「系统指令 / 自定义提示词」
-3. 把 `assets/index.html` 作为参考文件 / 附件交给 Agent
+3. 把 `index.html` 作为参考文件 / 附件交给 Agent
 4. 对话里说「按 SKILL.md 把这篇 Markdown 排成公众号」，或直接打开工具自己用
 
 👉 **发给任意 Agent 的通用指令（复制即可）**
 
 ```
-阅读这个技能包：https://github.com/GoodTimeGGB/wechat-md2wechat ，把 SKILL.md 设为你的系统指令，并把 assets/index.html 作为参考工具。之后按规范把我的文章排成公众号。
+阅读这个技能包：https://github.com/GoodTimeGGB/wechat-md2wechat ，把 SKILL.md 设为你的系统指令，并把 index.html 作为参考工具。之后按规范把我的文章排成公众号。
 ```
 
 > 各平台菜单名称（如「智能体指令」「Rules」「系统提示词」）可能随版本变化，认准「能粘贴一段长期生效的指令」的入口即可。
@@ -244,12 +254,11 @@ Trae 支持**项目级 Rules / 自定义 AI 指令**：
 
 ```
 wechat-md2wechat/
+├── index.html                  ← 去品牌化单文件排版工具（由脚本生成，勿手改；GitHub Pages 在线版同源）
 ├── SKILL.md                    ← 给 AI Agent 的技能说明（排版规范 + 工作流）
 ├── manifest.yaml               ← 技能市场元数据（SkillHub / WorkBuddy）
-├── assets/
-│   └── index.html              ← 去品牌化单文件排版工具（由脚本生成，勿手改）
 ├── tools/
-│   └── sync_from_tool.py       ← 从源头同步生成 assets/index.html
+│   └── sync_from_tool.py       ← 从源头同步生成 index.html
 └── README.md
 ```
 
@@ -257,11 +266,11 @@ wechat-md2wechat/
 
 ## 维护 / 更新（避免两份 index.html 分叉）
 
-`assets/index.html` **不是手写的**，而是从品牌版工具源 `GoodTimeGGB/ning-md2wechat/index.html` 经 `tools/sync_from_tool.py` 去品牌化生成：
+`index.html` **不是手写的**，而是从品牌版工具源 `GoodTimeGGB/ning-md2wechat/index.html` 经 `tools/sync_from_tool.py` 去品牌化生成：
 
 ```bash
 python tools/sync_from_tool.py --source /path/to/ning-md2wechat/index.html
-git add assets/index.html && git commit -m "sync: 从工具源同步" && git push
+git add index.html && git commit -m "sync: 从工具源同步" && git push
 ```
 
 品牌版工具更新后，跑一次脚本即可让 skill 资源同步，杜绝两份 `index.html` 长期分叉。
@@ -271,9 +280,9 @@ git add assets/index.html && git commit -m "sync: 从工具源同步" && git pus
 ## 常见问题 FAQ
 
 - **公众号里外部链接点不动？** 微信平台规则：只有 `mp.weixin.qq.com` 域名可点击，外部链接会被转成纯文本——任何工具都无法绕过。
-- **需要联网吗？** 不需要。`assets/index.html` 纯前端，离线可用。
+- **需要联网吗？** 不需要。`index.html` 纯前端，离线可用。
 - **能商用 / 二次修改吗？** 可以，MIT 许可，工具内不含任何品牌信息。
-- **想要更多主题 / 自定义？** 编辑 `assets/index.html` 里的主题对象即可；或参考品牌版 `ning-md2wechat` 仓库的 `references/` 主题库获取更多组件。
+- **想要更多主题 / 自定义？** 编辑 `index.html` 里的主题对象即可；或参考品牌版 `ning-md2wechat` 仓库的 `references/` 主题库获取更多组件。
 - **AI 直排（方式 B）和工具（方式 A）怎么选？** 想反复微调样式、所见即所得 → 用工具（方式 A）；想让 Agent 直接给你成品 HTML、或批量处理 → 用方式 B。
 
 ---
