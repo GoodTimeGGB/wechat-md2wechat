@@ -6,7 +6,7 @@ sync_from_tool.py — 从「品牌版」工具源文件生成「去品牌化」s
 维护约定（解决两份 index.html 长期分叉问题）：
 - 唯一源头 = 个人品牌版工具  GoodTimeGGB/ning-md2wechat/index.html
   （在线版 https://goodtimeggb.github.io/ning-md2wechat/ 即此文件）
-- 本仓库的 assets/index.html 由本脚本生成，禁止手动改它，
+- 本仓库的 index.html（仓库根）由本脚本生成，禁止手动改它，
   否则下次同步会覆盖。
 
 用法：
@@ -23,7 +23,7 @@ DEFAULT_SOURCE = (
     r"C:\Users\Administrator\WorkBuddy\2026-07-28-14-09-25"
     r"\ning-md2wechat\index.html"
 )
-DEFAULT_OUTPUT = os.path.normpath(os.path.join(HERE, "..", "assets", "index.html"))
+DEFAULT_OUTPUT = os.path.normpath(os.path.join(HERE, "..", "index.html"))
 
 # 署名块：各主题 style 颜色不同，用 [^>]* 匹配任意属性后统一替换
 SIG_RE = re.compile(
